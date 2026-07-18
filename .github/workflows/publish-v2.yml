@@ -1,0 +1,50 @@
+name: Publicera Mästaren V2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hämta projektet
+        uses: actions/checkout@v4
+
+      - name: Återskapa kunskapsappen
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          cat bundle-v2/part-*.b64 | tr -d '\n\r ' | base64 -d > /tmp/tcm-site.tar.br
+          python -m pip install --quiet brotli
+          python -c "import brotli,pathlib; pathlib.Path('/tmp/tcm-site.tar').write_bytes(brotli.decompress(pathlib.Path('/tmp/tcm-site.tar.br').read_bytes()))"
+          tar -xf /tmp/tcm-site.tar -C site
+          test -f site/index.html
+          test -f site/assets/index-BC3Pa8Ef.js
+          echo "TCM Mastery V2 återställd korrekt"
+
+      - name: Konfigurera GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Paketera webbappen
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publicera
+        id: deployment
+        uses: actions/deploy-pages@v4
