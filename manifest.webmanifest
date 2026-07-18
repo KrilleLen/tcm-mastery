@@ -1,0 +1,11 @@
+{
+  "name": "Mästaren · TCM Study OS",
+  "short_name": "Mästaren",
+  "description": "Källmedvetet studieverktyg för traditionell kinesisk medicin, akupunktur, örter och formler.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07110e",
+  "theme_color": "#0b1713",
+  "lang": "sv-SE"
+}
