@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mästaren">
+  <rect width="512" height="512" rx="112" fill="#0b2118"/>
+  <circle cx="256" cy="256" r="184" fill="#123a2a" stroke="#73d9ad" stroke-width="12"/>
+  <path d="M186 360 218 139M326 360 294 139" fill="none" stroke="#73d9ad" stroke-linecap="round" stroke-width="11"/>
+  <path d="M256 390V118" fill="none" stroke="#f0f8f3" stroke-linecap="round" stroke-width="9"/>
+  <g fill="none" stroke="#e8c778" stroke-linecap="round" stroke-width="12">
+    <path d="M224 133h64"/>
+    <path d="M222 157h68"/>
+    <path d="M219 181h74"/>
+    <path d="M216 205h80"/>
+  </g>
+  <circle cx="256" cy="390" r="12" fill="#e8c778"/>
+</svg>

@@ -1,77 +1,44 @@
 # Mästaren · TCM Study OS
 
-En körbar, mobilanpassad studieapp för traditionell kinesisk medicin, akupunktur, örter och formler. Projektet är byggt för att göra studentens resonemang synligt och mätbart — inte för att leverera vårdråd.
+En körbar, mobilanpassad studieapp för traditionell kinesisk medicin, akupunktur, örter och formler. Appen är byggd för att träna strukturerat resonemang och källmedvetenhet — inte för att ge vårdråd.
 
-## Vad som fungerar i version 1
+## Innehåll och funktioner
 
-- Sammanhängande kunskapsgraf: symtom → frågor → mönster → mekanism → princip → punkt/ört/formel → säkerhet → uppföljning.
-- Diagnostiskt flöde som låser behandlingsval tills resonemanget är genomfört.
-- Interaktiv punktatlas med fram-/baksida, självtest och säkerhetsspärr för nålparametrar utan källa.
-- Örtjämförelse för två till fem örter.
-- Formellaboratorium för rollanalys, borttagning och modifiering utan falskt ”godkännande”.
-- Stegvisa patientfall med säkerhetsscreening, anamnes, differentialdiagnostik och uppföljning.
-- Muntligt mästarförhör med webbläsarens taluppläsning och, där det stöds, taligenkänning.
-- Spaced repetition som väger in första svar, försök, ledtrådar, svarstid och säkerhet.
-- Källstatus för varje post: verifierad, pedagogisk, inferens eller saknar stöd.
-- Importmall för lagligt införskaffade anteckningar och strukturerat material.
-- PWA-stöd och GitHub Pages-workflow.
+- 48 kliniska kapitel med sökning på tillstånd, engelska namn och mönster.
+- 361 klassiska akupunkturpunktkoder med meridianfilter och sökning.
+- 102 örtkort med kategori, mönsterlogik, funktion och säkerhetsfrågor.
+- 58 unika formelkort med mönster, kategori och ingrediensstruktur.
+- Repetitionsmotor för alla fyra registren. Självbedömning och använd ledtråd styr nästa repetitionsdatum.
+- Stegvisa patientfall som sparar valt fall, valda frågor, mönster och skrivna utkast lokalt.
+- Muntliga mästarfrågor och svensk taluppläsning där webbläsaren stöder det.
+- Tydliga säkerhetsspärrar kring rödflaggor, läkemedel, graviditet, toxicitet och invasiv teknik.
+- PWA-stöd för installation och offlineanvändning.
 
 ## Viktig avgränsning
 
-Repo:t innehåller inte kopierade boktexter. Demonstrationsdata är tydligt märkta och exakta doser, nåldjup, interaktioner och bokreferenser lämnas tomma när importerad källa saknas. Appen ska då säga:
-
-> Det går inte att dra en säker slutsats från det tillgängliga källmaterialet.
-
-## Kör lokalt
-
-```bash
-npm install
-npm run dev
-```
-
-Öppna adressen som Vite visar, normalt `http://localhost:5173`.
-
-## Produktionsbygge
-
-```bash
-npm run build
-npm run preview
-```
-
-## Publicera med GitHub Pages
-
-1. Skapa ett nytt GitHub-repo, exempelvis `tcm-mastery`.
-2. Lägg in projektfilerna och pusha till `main`.
-3. Gå till **Settings → Pages → Build and deployment** och välj **GitHub Actions**.
-4. Workflow-filen `.github/workflows/deploy.yml` bygger och publicerar appen automatiskt.
-
-## Importformat
-
-Se `data/import-template.json`. En importerad kunskapspost bör minst ha:
-
-- unik id,
-- nodtyp,
-- titel och sammanfattning,
-- bok, upplaga, kapitel/avsnitt och sida när tillgängligt,
-- tydlig källstatus,
-- relationer till andra noder,
-- bekräftelse att materialet får användas.
-
-## Nästa utvecklingssteg
-
-- Backend med användarkonto och krypterad synkronisering.
-- Adminverktyg för OCR-granskning av lagliga utdrag.
-- Full anatomisk SVG-modell med regionlager och punktvalidering.
-- AI-lärare via serverfunktion där API-nyckeln aldrig exponeras i klienten.
-- Versionshanterad källredaktion med dubbelgranskning.
-- Fler fallvarianter och examenspipeline.
-
-## Säkerhet
+Repo:t innehåller inte kopierade boktexter. Innehållet är en pedagogisk studieöversikt. Exakta doser, nåldjup, nålriktningar, interaktioner och anatomiska detaljer ska verifieras i studentens egen upplaga, fysisk atlas och kvalificerad handledning.
 
 Appen är ett utbildningsverktyg. Den ersätter inte legitimerad sjukvård, kvalificerad handledning eller individuell medicinsk bedömning. Traditionell teori, kursbok, modern evidens och klinisk säkerhet ska hållas åtskilda.
 
-## Förhandsvisning
+## Kör lokalt
 
-![Dashboard](docs/preview-dashboard.png)
+Appen är statisk och kräver ingen produktionsbyggnad.
 
-Mobilversion finns i `docs/preview-mobile.png`.
+```bash
+python3 -m http.server 5173
+```
+
+Öppna sedan `http://localhost:5173`.
+
+## Testa
+
+```bash
+npm ci
+npm test
+```
+
+Testsviten kontrollerar JavaScript-syntax, registerstorlek, obligatoriska fält, dubletter, filkopplingar, sökflöden, filter, repetition, patientfall och återställning från lokal lagring.
+
+## Publicering
+
+Push till `main` kör testerna och publicerar därefter endast de filer som behövs av GitHub Pages. Ett enda publiceringsflöde används för att undvika konkurrerande eller avbrutna driftsättningar.

@@ -1,5 +1,5 @@
-const CACHE='tcm-mastery-v4';
-const ASSETS=['./','./index.html','./app.css','./conditions.js','./points.js','./herbs.js','./formulas.js','./app-core.js','./manifest.webmanifest'];
+const CACHE='tcm-mastery-v5';
+const ASSETS=['./','./index.html','./app.css','./conditions.js','./points.js','./herbs.js','./formulas.js','./app-core.js','./manifest.webmanifest','./icon.svg','./icon-180.png','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>event.waitUntil((async()=>{
   const cache=await caches.open(CACHE);
@@ -14,6 +14,8 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{
 })()));
 
 self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+
   if(event.request.mode==='navigate'){
     event.respondWith((async()=>{
       try{

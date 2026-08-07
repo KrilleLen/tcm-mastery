@@ -23,12 +23,28 @@ jobs:
     steps:
       - name: Hämta filer
         uses: actions/checkout@v4
+      - name: Förbered Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Installera testverktyg
+        run: npm ci
+      - name: Kontrollera appen
+        run: npm test
+      - name: Förbered endast appfiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html app.css conditions.js points.js herbs.js formulas.js app-core.js manifest.webmanifest icon.svg icon-180.png icon-192.png icon-512.png sw.js _site/
+          touch _site/.nojekyll
       - name: Konfigurera Pages
         uses: actions/configure-pages@v5
       - name: Paketera webbappen
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_site'
       - name: Publicera
         id: deployment
         uses: actions/deploy-pages@v4
