@@ -1,4 +1,4 @@
-const CACHE='tcm-mastery-v5';
+const CACHE='tcm-mastery-v6';
 const ASSETS=['./','./index.html','./app.css','./conditions.js','./points.js','./herbs.js','./formulas.js','./app-core.js','./manifest.webmanifest','./icon.svg','./icon-180.png','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>event.waitUntil((async()=>{

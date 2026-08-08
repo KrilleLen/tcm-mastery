@@ -70,7 +70,7 @@ test("punktfilter och diakritikfri sökning håller lista och detalj synkroniser
   assert.equal(active.getAttribute("aria-pressed"), "true");
 
   const search = window.document.querySelector("#pointSearch");
-  input(window, search, "LI4");
+  input(window, search, "LI 4");
   assert.match(window.document.querySelector("#pointDetail").textContent, /LI4.*Hegu/s);
   assert.ok(window.document.querySelector("#pointList .item.selected"));
 
@@ -86,13 +86,28 @@ test("ört- och formelsökning öppnar den första relevanta träffen", () => {
   const { window } = dom;
 
   window.go("herbs");
-  input(window, window.document.querySelector("#herbSearch"), "Ren Shen");
+  input(window, window.document.querySelector("#herbSearch"), "renshen");
   assert.match(window.document.querySelector("#herbDetail").textContent, /Ren Shen/);
 
   window.go("formulas");
-  input(window, window.document.querySelector("#formulaSearch"), "Zuo Jin Wan");
+  input(window, window.document.querySelector("#formulaSearch"), "zuo-jin-wan");
   assert.equal(window.document.querySelectorAll("#formulaList .item").length, 1);
   assert.match(window.document.querySelector("#formulaDetail").textContent, /Zuo Jin Wan/);
+  dom.window.close();
+});
+
+test("mönstersökning fungerar utan exakt bindestreck eller ordordning", () => {
+  const dom = loadApp();
+  const { window } = dom;
+  window.go("conditions");
+  const search = window.document.querySelector("#conditionSearch");
+
+  input(window, search, "yin brist");
+  assert.ok(window.document.querySelectorAll("#conditionList .item").length > 0);
+
+  input(window, search, "brist mjälte qi");
+  assert.ok(window.document.querySelectorAll("#conditionList .item").length > 0);
+  assert.match(window.document.querySelector("#conditionDetail").textContent, /Mjälte-Qi-brist/);
   dom.window.close();
 });
 
@@ -133,6 +148,11 @@ test("patientfallet kräver fyra fortfarande valda frågor", () => {
   options[0].click();
   window.document.querySelector("#caseContent .primary").click();
   assert.match(window.document.querySelector("#caseContent h2").textContent, /Differentiera mönster/);
+  assert.equal(window.document.querySelectorAll("#caseContent .chips .chip").length, 4);
+
+  window.document.querySelector("#caseContent .case-back").click();
+  assert.match(window.document.querySelector("#caseContent h2").textContent, /Välj frågor/);
+  assert.equal(window.document.querySelectorAll("#caseContent .option.sel").length, 4);
   dom.window.close();
 });
 
@@ -162,6 +182,60 @@ test("pågående patientfall återställs med samma svar och utkast", () => {
   assert.equal(restored.window.document.querySelector("#caseText").value, draft);
   assert.equal(restored.window.document.querySelectorAll("#caseContent .option.sel").length, 1);
   restored.window.close();
+});
+
+test("semantiskt skadad falldata repareras utan tom vy eller dubbla val", () => {
+  const storedState = JSON.stringify({
+    caseSession: {
+      caseIndex: 0,
+      step: 1.5,
+      questions: [0, 0, 0, 0],
+      patterns: [0, 0],
+      drafts: [],
+    },
+  });
+  const dom = loadApp({ storedState, hash: "#case" });
+  const { window } = dom;
+
+  assert.match(window.document.querySelector("#caseContent h2").textContent, /Välj frågor/);
+  assert.equal(window.document.querySelectorAll("#caseContent .option.sel").length, 1);
+  window.document.querySelector("#caseContent .primary").click();
+  assert.match(window.document.querySelector("#caseContent h2").textContent, /Välj frågor/);
+  assert.ok(window.document.querySelector("#caseError.show"));
+  dom.window.close();
+});
+
+test("patientfallet kräver en sparad uppföljningsplan innan det slutförs", () => {
+  const storedState = JSON.stringify({
+    casesCompleted: 0,
+    caseSession: {
+      caseIndex: 0,
+      step: 6,
+      questions: [0, 1, 2, 3],
+      patterns: [0],
+      drafts: {},
+    },
+  });
+  const dom = loadApp({ storedState, hash: "#case" });
+  const { window } = dom;
+  const title = window.document.querySelector("#caseTitle").textContent;
+
+  window.document.querySelector("#caseContent .primary").click();
+  assert.equal(window.document.querySelector("#caseTitle").textContent, title);
+  assert.ok(window.document.querySelector("#caseError.show"));
+
+  input(
+    window,
+    window.document.querySelector("#caseText"),
+    "Effekt och tolerans följs upp systematiskt. Nya säkerhetssignaler bedöms, hypotesen omprövas och beslut tas om att fortsätta, ändra eller hänvisa vidare.",
+  );
+  window.document.querySelector("#caseContent .primary").click();
+
+  const stored = JSON.parse(window.localStorage.getItem("mastery-v2"));
+  assert.equal(stored.casesCompleted, 1);
+  assert.equal(stored.caseSession.step, 0);
+  assert.notEqual(window.document.querySelector("#caseTitle").textContent, title);
+  dom.window.close();
 });
 
 test("mästarvyn börjar med den första frågan och byter först på begäran", () => {

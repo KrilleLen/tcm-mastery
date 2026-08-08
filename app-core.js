@@ -55,12 +55,23 @@ function normalizeSearch(value) {
     .toLocaleLowerCase("sv-SE")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 function containsSearch(query, ...parts) {
-  if (!query) return true;
-  return normalizeSearch(parts.flat().join(" ")).includes(query);
+  const needle = normalizeSearch(query);
+  if (!needle) return true;
+
+  const haystack = normalizeSearch(parts.flat().join(" "));
+  if (haystack.includes(needle)) return true;
+
+  const compactNeedle = needle.replace(/\s/g, "");
+  const compactHaystack = haystack.replace(/\s/g, "");
+  if (compactHaystack.includes(compactNeedle)) return true;
+
+  return needle.split(" ").every((token) => haystack.includes(token));
 }
 
 function emptyState(title, text) {
@@ -112,6 +123,18 @@ window.addEventListener("popstate", () => go(location.hash.slice(1) || "home", f
 
 let deferredInstallPrompt = null;
 
+function isStandaloneApp() {
+  const displayModeStandalone =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  return displayModeStandalone || navigator.standalone === true;
+}
+
+function syncInstallButton() {
+  const button = $("#installButton");
+  if (button) button.hidden = isStandaloneApp();
+}
+
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
@@ -122,11 +145,16 @@ window.addEventListener("beforeinstallprompt", (event) => {
 window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
   const button = $("#installButton");
-  if (button) button.textContent = "Installerad";
+  if (button) button.hidden = true;
   showToast("Appen är installerad och kan öppnas från hemskärmen.");
 });
 
 async function installHelp() {
+  if (isStandaloneApp()) {
+    showToast("Appen är redan installerad och körs från hemskärmen.");
+    return;
+  }
+
   if (deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
     const choice = await deferredInstallPrompt.userChoice;
@@ -135,7 +163,9 @@ async function installHelp() {
     return;
   }
 
-  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isiOS =
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   if (isiOS) {
     showToast("På iPhone eller iPad: tryck Dela i Safari och välj Lägg till på hemskärmen.");
   } else {
@@ -587,18 +617,42 @@ function normalizeCaseSession(session) {
     return createCaseSession();
   }
 
+  const questions = Array.isArray(session.questions)
+    ? [
+        ...new Set(
+          session.questions.filter(
+            (value) => Number.isInteger(value) && caseQuestions[value],
+          ),
+        ),
+      ]
+    : [];
+  const patterns = Array.isArray(session.patterns)
+    ? [
+        ...new Set(
+          session.patterns.filter(
+            (value) => Number.isInteger(value) && cases[session.caseIndex].patterns[value],
+          ),
+        ),
+      ]
+    : [];
+  const storedDrafts =
+    session.drafts && typeof session.drafts === "object" && !Array.isArray(session.drafts)
+      ? session.drafts
+      : {};
+  const drafts = {};
+
+  for (let step = 0; step <= 6; step += 1) {
+    if (typeof storedDrafts[String(step)] === "string") {
+      drafts[String(step)] = storedDrafts[String(step)];
+    }
+  }
+
   return {
     caseIndex: session.caseIndex,
-    step: Math.min(6, Math.max(0, Number(session.step) || 0)),
-    questions: Array.isArray(session.questions)
-      ? session.questions.filter((value) => Number.isInteger(value) && caseQuestions[value])
-      : [],
-    patterns: Array.isArray(session.patterns)
-      ? session.patterns.filter(
-          (value) => Number.isInteger(value) && cases[session.caseIndex].patterns[value],
-        )
-      : [],
-    drafts: session.drafts && typeof session.drafts === "object" ? session.drafts : {},
+    step: Math.min(6, Math.max(0, Math.trunc(Number(session.step) || 0))),
+    questions,
+    patterns,
+    drafts,
   };
 }
 
@@ -637,6 +691,12 @@ function caseNext(ok, message) {
   renderCase();
 }
 
+function casePrevious() {
+  state.caseSession.step = Math.max(0, state.caseSession.step - 1);
+  save();
+  renderCase();
+}
+
 function renderCase() {
   const session = state.caseSession;
   const caseItem = cases[session.caseIndex];
@@ -659,11 +719,11 @@ function renderCase() {
   }
 
   if (step === 1) {
-    content.innerHTML = `<h2>Välj frågor med hög informationsvinst</h2>${caseQuestions.map((question, index) => `<button type="button" class="option ${session.questions.includes(index) ? "sel" : ""}" aria-pressed="${session.questions.includes(index)}" onclick="toggleCaseOption('questions',${index},this)">${question}</button>`).join("")}<p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="caseNext(state.caseSession.questions.length>=4,'Välj minst fyra frågor innan du går vidare.')">Visa fynd</button>`;
+    content.innerHTML = `<h2>Välj frågor med hög informationsvinst</h2>${caseQuestions.map((question, index) => `<button type="button" class="option ${session.questions.includes(index) ? "sel" : ""}" aria-pressed="${session.questions.includes(index)}" onclick="toggleCaseOption('questions',${index},this)">${question}</button>`).join("")}<p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="caseNext(state.caseSession.questions.length>=4,'Välj minst fyra frågor innan du går vidare.')">Fortsätt till mönster</button>`;
   }
 
   if (step === 2) {
-    content.innerHTML = `<h2>Differentiera mönster</h2><p class="answer">${caseItem.intro}</p>${caseItem.patterns.map((pattern, index) => `<button type="button" class="option ${session.patterns.includes(index) ? "sel" : ""}" aria-pressed="${session.patterns.includes(index)}" onclick="toggleCaseOption('patterns',${index},this)">${pattern}</button>`).join("")}<textarea id="caseText" aria-label="Differentialdiagnostiskt resonemang" placeholder="Ange fynd för, fynd emot och saknad information…" oninput="saveCaseDraft(2,this.value)"></textarea><p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="caseNext(state.caseSession.patterns.length>0 && $('#caseText').value.trim().length>100,'Välj minst ett mönster och utveckla fynd för, fynd emot och saknad information.')">Fortsätt</button>`;
+    content.innerHTML = `<h2>Differentiera mönster</h2><p class="answer">${caseItem.intro}</p><h3>Valda bedömningsområden</h3><div class="chips">${session.questions.map((index) => `<span class="chip">${caseQuestions[index]}</span>`).join("")}</div>${caseItem.patterns.map((pattern, index) => `<button type="button" class="option ${session.patterns.includes(index) ? "sel" : ""}" aria-pressed="${session.patterns.includes(index)}" onclick="toggleCaseOption('patterns',${index},this)">${pattern}</button>`).join("")}<textarea id="caseText" aria-label="Differentialdiagnostiskt resonemang" placeholder="Ange fynd för, fynd emot och saknad information…" oninput="saveCaseDraft(2,this.value)"></textarea><p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="caseNext(state.caseSession.patterns.length>0 && $('#caseText').value.trim().length>100,'Välj minst ett mönster och utveckla fynd för, fynd emot och saknad information.')">Fortsätt</button>`;
   }
 
   if (step === 3) {
@@ -679,14 +739,29 @@ function renderCase() {
   }
 
   if (step === 6) {
-    content.innerHTML = `<h2>Stäng loopen</h2><div class="facts"><div class="fact"><small>Effekt</small>Vilka symtom och funktioner ska förändras?</div><div class="fact"><small>Säkerhet</small>Vilka biverkningar och interaktioner följs?</div><div class="fact"><small>Hypotes</small>Vad skulle falsifiera ditt mönster?</div><div class="fact"><small>Beslut</small>När avslutas, ändras eller hänvisas?</div></div><button type="button" class="primary" onclick="finishCase()">Slutför och skapa nytt fall</button>`;
+    content.innerHTML = `<h2>Stäng loopen</h2><div class="facts"><div class="fact"><small>Effekt</small>Vilka symtom och funktioner ska förändras?</div><div class="fact"><small>Säkerhet</small>Vilka biverkningar och interaktioner följs?</div><div class="fact"><small>Hypotes</small>Vad skulle falsifiera ditt mönster?</div><div class="fact"><small>Beslut</small>När avslutas, ändras eller hänvisas?</div></div><textarea id="caseText" aria-label="Plan för uppföljning" placeholder="Beskriv effektmått, säkerhet, omvärdering och beslut…" oninput="saveCaseDraft(6,this.value)"></textarea><p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="finishCase()">Slutför och skapa nytt fall</button>`;
   }
 
   const textarea = $("#caseText");
   if (textarea) textarea.value = session.drafts[String(step)] || "";
+
+  if (step > 0) {
+    const backButton = document.createElement("button");
+    backButton.type = "button";
+    backButton.className = "ghost case-back";
+    backButton.textContent = "← Föregående steg";
+    backButton.addEventListener("click", casePrevious);
+    content.append(backButton);
+  }
 }
 
 function finishCase() {
+  const followUp = $("#caseText")?.value.trim() || "";
+  if (followUp.length <= 80) {
+    caseError("Beskriv hur effekt, säkerhet och hypotes ska följas upp innan fallet slutförs.");
+    return;
+  }
+
   const previousIndex = state.caseSession.caseIndex;
   state.casesCompleted += 1;
   state.caseSession = createCaseSession(randomCaseIndex(previousIndex));
@@ -733,6 +808,7 @@ function speakMaster() {
 }
 
 initChannels();
+syncInstallButton();
 const initialView = location.hash.slice(1) || "home";
 go(initialView, false);
 
