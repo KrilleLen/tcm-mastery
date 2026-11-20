@@ -180,18 +180,36 @@
     <p>Träna på ett ämne i taget eller varva frågor från alla fyra register.</p>
     <p id="studyMeta" class="study-meta" aria-live="polite"></p>
   </div>
-  <div class="panel study-settings">
-    <label for="studyTopic">Vad vill du träna på?</label>
-    <select id="studyTopic">
-      <option value="all">Alla ämnen</option>
-      <option value="condition">Kliniska kapitel</option>
-      <option value="point">Akupunkturpunkter</option>
-      <option value="herb">Örter</option>
-      <option value="formula">Formler</option>
-    </select>
-    <p id="studyQueueInfo"></p>
-  </div>
-  <div class="panel study-card">
+  <details class="panel study-settings" id="studySettings">
+    <summary>Ämne och längd</summary>
+    <form id="studySetup">
+      <div class="study-field">
+        <label for="studyTopic">Ämne</label>
+        <select id="studyTopic" aria-describedby="studyQueueInfo">
+          <option value="all">Alla ämnen</option>
+          <option value="condition">Kliniska kapitel</option>
+          <option value="point">Akupunkturpunkter</option>
+          <option value="herb">Örter</option>
+          <option value="formula">Formler</option>
+        </select>
+      </div>
+      <div class="study-field">
+        <label for="studyLength">Passlängd</label>
+        <select id="studyLength">
+          <option value="5">5 kort</option>
+          <option value="10">10 kort</option>
+          <option value="15">15 kort</option>
+        </select>
+      </div>
+      <button class="primary" type="submit">Starta nytt pass</button>
+      <p id="studyQueueInfo"></p>
+    </form>
+  </details>
+  <div id="studyCard" class="panel study-card">
+    <div class="study-progress">
+      <label for="studyProgress" id="studyPosition"></label>
+      <progress id="studyProgress" value="0" max="5"></progress>
+    </div>
     <div>
       <span id="studyBadge" class="badge"></span>
       <h2 id="studyQ">Dagens fråga</h2>
@@ -208,6 +226,14 @@
         <button type="button" class="ghost" onclick="grade(1)">Osäker</button>
         <button type="button" class="primary" onclick="grade(2)">Kan förklara</button>
       </div>
+    </div>
+  </div>
+  <div id="studySummary" class="panel study-summary hidden" tabindex="-1">
+    <h2 id="studySummaryTitle"></h2>
+    <p id="studySummaryStats"></p>
+    <div class="actions">
+      <button id="studyAgain" type="button" class="primary">Starta nästa pass</button>
+      <button id="studyChange" type="button" class="ghost">Välj ämne</button>
     </div>
   </div>
 </section>

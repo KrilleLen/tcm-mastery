@@ -37,8 +37,32 @@ test("ämnesval begränsar studiepassets frågor", (t) => {
   const { document } = window;
   const topic = document.querySelector("#studyTopic");
   topic.value = "herb";
-  topic.dispatchEvent(new window.Event("change"));
+  document.querySelector("#studySetup button").click();
   assert.equal(document.querySelector("#studyBadge").textContent, "Ört");
   window.grade(1);
   assert.equal(document.querySelector("#studyBadge").textContent, "Ört");
+});
+
+test("ett femkortspass avslutas med en sammanfattning och ett nytt pass kan startas", (t) => {
+  const window = loadStudy(t);
+  const { document } = window;
+  const questions = new Set();
+  for (const [index, score] of [2, 2, 1, 0, 2].entries()) {
+    assert.equal(document.querySelector("#studyPosition").textContent, `Kort ${index + 1} av 5`);
+    questions.add(document.querySelector("#studyQ").textContent);
+    window.grade(score);
+  }
+  assert.equal(questions.size, 5);
+  assert.ok(document.querySelector("#studyCard").classList.contains("hidden"));
+  assert.match(document.querySelector("#studySummaryStats").textContent, /5 bedömda kort. 3 kan du förklara, 1 är du osäker på och 1 behöver/);
+  document.querySelector("#studyAgain").click();
+  assert.equal(document.querySelector("#studyPosition").textContent, "Kort 1 av 5");
+});
+
+test("den valda passlängden bestämmer hur många frågor som visas", (t) => {
+  const { document } = loadStudy(t);
+  document.querySelector("#studyLength").value = "10";
+  document.querySelector("#studySetup button").click();
+  assert.equal(document.querySelector("#studyProgress").max, 10);
+  assert.equal(document.querySelector("#studyPosition").textContent, "Kort 1 av 10");
 });

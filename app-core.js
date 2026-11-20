@@ -741,7 +741,8 @@ function allCards() {
 
 const CARDS = allCards();
 let currentCard = null;
-let studyTopic = "all";
+const STUDY_LENGTHS = [5, 10, 15];
+let studySession = null;
 let studyFirst = true;
 let studyHintUsed = false;
 let studyStartedAt = 0;
@@ -768,55 +769,114 @@ function studyQueues(cards) {
   return { fresh, due: due.sort(byDue), later: later.sort(byDue) };
 }
 
-function chooseStudyCard() {
-  const { due, fresh, later } = studyQueues(studyCardsFor(studyTopic));
-  const avoidingCurrent = (cards) => cards.filter((card) => card.id !== currentCard?.id);
-  const nextFresh = avoidingCurrent(fresh);
-  return (
-    avoidingCurrent(due)[0] ??
-    nextFresh[Math.floor(Math.random() * nextFresh.length)] ??
-    avoidingCurrent(later)[0] ??
-    due[0] ??
-    fresh[0] ??
-    later[0] ??
-    null
-  );
+function studyQueue(topic, length) {
+  const { due, fresh } = studyQueues(studyCardsFor(topic));
+  const selected = due.slice(0, length);
+  while (selected.length < length && fresh.length) {
+    const index = Math.floor(Math.random() * fresh.length);
+    selected.push(fresh.splice(index, 1)[0]);
+  }
+  return selected.map((card) => card.id);
 }
 
 function studyOverview() {
   const { due, fresh } = studyQueues(CARDS);
-  return { started: CARDS.length - fresh.length, due: due.length };
+  const completed = studySession?.grades.length ?? 0;
+  const total = studySession?.queue.length ?? 0;
+  return {
+    started: CARDS.length - fresh.length,
+    due: due.length,
+    inProgress: completed > 0 && completed < total,
+    completed,
+    total,
+  };
+}
+
+function updateStudySetup() {
+  const selected = studyQueues(studyCardsFor($("#studyTopic").value));
+  $("#studyQueueInfo").textContent = selected.due.length
+    ? `${selected.due.length} kort redo att repetera. De kommer först.`
+    : `${selected.fresh.length} nya kort i ämnet.`;
 }
 
 function updateStudyMeta() {
   const { started, due } = studyOverview();
   $("#studyMeta").textContent =
     `Påbörjat ${started} av ${CARDS.length} kort · ${due} att repetera i dag`;
-  const selected = studyQueues(studyCardsFor(studyTopic));
-  $("#studyQueueInfo").textContent = selected.due.length
-    ? `${selected.due.length} kort redo att repetera. De kommer först.`
-    : `${selected.fresh.length} nya kort i ämnet.`;
+  updateStudySetup();
 }
 
-$("#studyTopic").addEventListener("change", (event) => {
-  studyTopic = event.target.value;
+function startStudy(topic = "all", length = 5) {
+  studySession = { topic, length, queue: studyQueue(topic, length), grades: [] };
+  $("#studyTopic").value = topic;
+  $("#studyLength").value = String(length);
   newStudy();
-});
+}
+
+function renderStudySummary() {
+  const { grades, topic } = studySession;
+  const { due, fresh, later } = studyQueues(studyCardsFor(topic));
+  const trainingCount = grades.filter((value) => value === 0).length;
+  const unsureCount = grades.filter((value) => value === 1).length;
+  const confidentCount = grades.filter((value) => value === 2).length;
+  $("#studySummaryTitle").textContent = grades.length ? "Passet är klart" : "Du är i fas";
+  if (grades.length) {
+    $("#studySummaryStats").textContent =
+      `${grades.length} bedömda kort. ${confidentCount} kan du förklara, ${unsureCount} är du osäker på och ${trainingCount} behöver du träna mer på.`;
+  } else {
+    const date = later[0] && new Date(Number(state.cards[later[0].id].due));
+    $("#studySummaryStats").textContent = date && Number.isFinite(date.getTime())
+      ? `Nästa repetition blir tillgänglig ${date.toLocaleString("sv-SE", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`
+      : "Det finns inga kort redo i det här ämnet. Välj ett annat ämne för att fortsätta.";
+  }
+  $("#studyAgain").hidden = !due.length && !fresh.length;
+  $("#studySummary").classList.remove("hidden");
+  $("#studyCard").classList.add("hidden");
+  $("#studySummary").focus();
+}
 
 function newStudy() {
-  currentCard = chooseStudyCard();
-  if (!currentCard) return;
+  if (!studySession) {
+    startStudy();
+    return;
+  }
+
+  const { queue, grades } = studySession;
+  currentCard = CARDS.find((card) => card.id === queue[grades.length]) ?? null;
+  updateStudyMeta();
+  if (!currentCard) {
+    renderStudySummary();
+    return;
+  }
 
   studyFirst = true;
   studyHintUsed = false;
   studyStartedAt = Date.now();
+  $("#studySummary").classList.add("hidden");
+  $("#studyCard").classList.remove("hidden");
   $("#studyBadge").textContent = currentCard.type;
   $("#studyQ").textContent = currentCard.q;
   $("#studyA").textContent = currentCard.a;
   $("#studyA").classList.add("hidden");
   $("#studyText").value = "";
-  updateStudyMeta();
+  $("#studyPosition").textContent = `Kort ${grades.length + 1} av ${queue.length}`;
+  $("#studyProgress").max = queue.length;
+  $("#studyProgress").value = grades.length;
 }
+
+$("#studyTopic").addEventListener("change", updateStudySetup);
+$("#studySetup").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const length = Number($("#studyLength").value);
+  startStudy($("#studyTopic").value, STUDY_LENGTHS.includes(length) ? length : 5);
+  $("#studySettings").open = false;
+});
+
+$("#studyAgain").addEventListener("click", () => startStudy(studySession.topic, studySession.length));
+$("#studyChange").addEventListener("click", () => {
+  $("#studySettings").open = true;
+  $("#studyTopic").focus();
+});
 
 function showStudyAnswer() {
   if (!currentCard) return;
@@ -832,7 +892,7 @@ function formatInterval(days) {
 }
 
 function grade(gradeValue) {
-  if (!currentCard) return;
+  if (!currentCard || ![0, 1, 2].includes(gradeValue)) return;
 
   const previous = state.cards[currentCard.id] || {
     reviews: 0,
@@ -859,6 +919,7 @@ function grade(gradeValue) {
     usedHint: studyHintUsed,
     lapses: finiteNumber(previous.lapses) + (gradeValue === 0 ? 1 : 0),
   };
+  studySession.grades.push(gradeValue);
   save();
   showToast(`Nästa repetition om ${formatInterval(intervalDays)}.`);
   newStudy();
