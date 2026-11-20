@@ -16,7 +16,7 @@
 <body>
 <a href="#main" class="skip-link">Hoppa till innehållet</a>
 <div class="app">
-<header class="site-header"><a class="brand" href="#home" aria-label="Mästaren, startsida"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren</b><small>Studieapp för akupunktur och TCM</small></div></a><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">＋ App</button></header>
+<header class="site-header"><a class="brand" href="#home" aria-label="Mästaren, startsida"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren</b><small>Studieapp för akupunktur och TCM</small></div></a><div class="header-actions"><a href="#search" class="pill header-search"><span aria-hidden="true">⌕</span> Sök<span class="search-label-wide"> i atlasen</span></a><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">＋ App</button></div></header>
 <nav class="site-nav" aria-label="Huvudmeny">
   <div class="row">
     <a href="#home" data-v="home" aria-current="page"><span aria-hidden="true">⌂</span>Start</a>
@@ -114,6 +114,28 @@
       <p>Studera kategorier och hur innehållet hänger ihop.</p>
       <span class="path-action">Öppna 58 formler</span>
     </a>
+  </div>
+</section>
+<section id="search" class="view" aria-labelledby="searchTitle">
+  <div class="title">
+    <h1 id="searchTitle">Sök i hela atlasen</h1>
+    <p>Hitta ett kapitel, en punktkod, en ört eller en formel från samma sökfält.</p>
+  </div>
+  <div class="panel atlas-search">
+    <label for="globalSearchInput">Vad söker du?</label>
+    <div class="global-search-field">
+      <input id="globalSearchInput" class="search" type="search" placeholder="Exempelvis LI4, astma eller Ren Shen" autocomplete="off">
+      <button type="button" class="ghost" id="globalSearchClear" hidden>Rensa</button>
+    </div>
+    <div class="search-filters" id="globalSearchFilters" role="group" aria-label="Filtrera träffar">
+      <button class="ghost" type="button" aria-pressed="true" data-kind="all">Alla</button>
+      <button class="ghost" type="button" aria-pressed="false" data-kind="conditions">Kapitel</button>
+      <button class="ghost" type="button" aria-pressed="false" data-kind="points">Punkter</button>
+      <button class="ghost" type="button" aria-pressed="false" data-kind="herbs">Örter</button>
+      <button class="ghost" type="button" aria-pressed="false" data-kind="formulas">Formler</button>
+    </div>
+    <p id="globalSearchStatus" class="muted" role="status"></p>
+    <div id="globalSearchResults"></div>
   </div>
 </section>
 <section id="conditions" class="view"><div class="title"><span class="eyebrow">The Practice of Chinese Medicine</span><h1>48 kliniska kapitel</h1><p>Kapitelhänvisningar följer andra upplagans struktur. Innehållet är en pedagogisk studiekarta, inte en kopia av boktexten.</p></div><div class="grid cols"><div class="panel list"><input id="conditionSearch" class="search" aria-label="Sök kliniska kapitel" placeholder="Sök tillstånd eller mönster…" oninput="renderConditions()"><div id="conditionList"></div></div><div id="conditionDetail" class="panel detail" aria-live="polite"></div></div></section>

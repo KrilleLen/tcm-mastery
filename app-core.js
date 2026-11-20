@@ -91,6 +91,7 @@ function showToast(message) {
 }
 
 function renderView(id) {
+  if (id === "search") renderUniversalSearch();
   if (id === "conditions") renderConditions();
   if (id === "points") renderPoints();
   if (id === "herbs") renderHerbs();
@@ -106,7 +107,7 @@ let appliedHash;
 function go(id, updateHistory = true, recordId = null) {
   const requested = document.getElementById(id);
   const target = requested?.classList.contains("view") ? id : "home";
-  const navTarget = ATLAS_VIEWS.includes(target) ? "atlas" : target;
+  const navTarget = ATLAS_VIEWS.includes(target) || target === "search" ? "atlas" : target;
   const activeView = document.getElementById(target);
 
   $$(".view").forEach((view) => view.classList.toggle("active", view === activeView));
@@ -133,7 +134,7 @@ function go(id, updateHistory = true, recordId = null) {
     : `${heading.textContent.trim()} · Mästaren`;
   if (updateHistory && heading) {
     heading.tabIndex = -1;
-    heading.focus({ preventScroll: true });
+    (target === "search" ? $("#globalSearchInput") : heading).focus({ preventScroll: true });
   }
   if (ATLAS_VIEWS.includes(target) && typeof restoreAtlasRoute === "function") {
     restoreAtlasRoute(target, recordId);
@@ -160,10 +161,163 @@ document.addEventListener("click", (event) => {
   const link = event.target.closest('a[href^="#"]');
   if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey ||
       event.ctrlKey || event.shiftKey || event.altKey) return;
+  if (link.dataset.record && typeof openAtlasRecord === "function") {
+    event.preventDefault();
+    openAtlasRecord(link.dataset.view, link.dataset.record);
+    return;
+  }
   const target = link.getAttribute("href").slice(1);
   if (!document.getElementById(target)?.classList.contains("view")) return;
   event.preventDefault();
   go(target);
+});
+
+const SEARCH_GROUPS = [
+  {
+    view: "conditions", label: "Kliniska kapitel",
+    entry: (item) => [String(item.chapter), item.title, item.english, item.patterns],
+  },
+  {
+    view: "points", label: "Akupunkturpunkter",
+    entry: (item) => [item.id, [item.id, item.name].filter(Boolean).join(" · "), item.channel, item.name],
+  },
+  {
+    view: "herbs", label: "Örtkort",
+    entry: (item) => [item.pinyin, item.pinyin, item.category, [item.latin, item.pattern]],
+  },
+  {
+    view: "formulas", label: "Formler",
+    entry: (item) => [item.name, item.name, item.category, [item.pattern, item.ingredients]],
+  },
+];
+
+let searchKind = "all";
+let searchLimit = 30;
+
+function renderUniversalSearch() {
+  const input = $("#globalSearchInput");
+  const results = $("#globalSearchResults");
+  const status = $("#globalSearchStatus");
+  if (!input || !results || !status) return;
+
+  results.replaceChildren();
+  $("#globalSearchClear").hidden = !input.value;
+  const query = normalizeSearch(input.value);
+  if (!query) {
+    status.textContent = input.value.trim()
+      ? "Skriv ett namn, ett ord eller en punktkod."
+      : "Skriv ett ord eller välj ett av exemplen.";
+    for (const example of ["LI4", "Astma", "Ren Shen"]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ghost search-example";
+      button.textContent = example;
+      button.addEventListener("click", () => {
+        input.value = example;
+        searchLimit = 30;
+        renderUniversalSearch();
+        input.focus();
+      });
+      results.append(button);
+    }
+    return;
+  }
+
+  const compact = (value) => normalizeSearch(value).replace(/\s/g, "");
+  const key = compact(query);
+  let total = 0;
+  for (const group of SEARCH_GROUPS) {
+    if (searchKind !== "all" && searchKind !== group.view) continue;
+    const hits = DATA[group.view].map(group.entry)
+      .filter(([id, title, subtitle, tags]) => containsSearch(query, id, title, subtitle, tags))
+      .map((entry) => {
+        const [id, title] = entry;
+        const rank = compact(id) === key || compact(title) === key ? 0
+          : compact(title).startsWith(key) ? 1 : 2;
+        return { entry, rank };
+      })
+      .sort((a, b) => a.rank - b.rank);
+    total += hits.length;
+    if (!hits.length) continue;
+
+    const section = document.createElement("section");
+    section.className = "search-group";
+    const heading = document.createElement("h2");
+    heading.textContent = `${group.label} (${hits.length})`;
+    section.append(heading);
+    const list = document.createElement("div");
+    list.className = "search-hits";
+    const limit = searchKind === "all" ? 5 : searchLimit;
+    for (const { entry: [id, title, subtitle] } of hits.slice(0, limit)) {
+      const link = document.createElement("a");
+      link.className = "item search-hit";
+      link.href = `#${group.view}/${encodeURIComponent(id)}`;
+      link.dataset.view = group.view;
+      link.dataset.record = id;
+      const name = document.createElement("b");
+      name.textContent = title;
+      link.append(name);
+      if (subtitle) {
+        const description = document.createElement("small");
+        description.textContent = subtitle;
+        link.append(description);
+      }
+      list.append(link);
+    }
+    section.append(list);
+    if (hits.length > limit) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "ghost";
+      more.textContent = searchKind === "all" ? `Visa alla i ${group.label.toLowerCase()}` : "Visa fler träffar";
+      more.addEventListener("click", () => {
+        if (searchKind === "all") setSearchKind(group.view);
+        else {
+          searchLimit += 30;
+          renderUniversalSearch();
+        }
+        $("#globalSearchResults .search-hit")?.focus();
+      });
+      section.append(more);
+    }
+    results.append(section);
+  }
+
+  const restrict = searchKind !== "all";
+  status.textContent = total
+    ? `${total} ${total === 1 ? "träff" : "träffar"}`
+    : restrict ? "Inga träffar i det valda registret. Prova Alla eller ett annat sökord."
+      : "Inga träffar. Prova en kortare stavning, punktkod eller ett annat ord.";
+}
+
+function setSearchKind(kind) {
+  searchKind = kind;
+  searchLimit = 30;
+  $$("#globalSearchFilters button").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.kind === kind));
+  });
+  renderUniversalSearch();
+}
+
+$("#globalSearchInput")?.addEventListener("input", () => {
+  searchLimit = 30;
+  renderUniversalSearch();
+});
+$("#globalSearchClear")?.addEventListener("click", () => {
+  const input = $("#globalSearchInput");
+  input.value = "";
+  setSearchKind("all");
+  input.focus();
+});
+$("#globalSearchFilters")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-kind]");
+  if (button) setSearchKind(button.dataset.kind);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.defaultPrevented || event.key !== "/" || event.altKey || event.ctrlKey || event.metaKey ||
+      event.target.closest("input, textarea, select, [contenteditable], dialog[open]")) return;
+  event.preventDefault();
+  go("search");
 });
 
 let deferredInstallPrompt = null;
