@@ -264,7 +264,11 @@
     <div id="caseChoices" class="case-choices"></div>
   </details>
   <div class="panel casebox">
-    <div id="caseSteps" class="steps"></div>
+    <div class="case-progress">
+      <p id="caseStepLabel"></p>
+      <progress id="caseProgress" max="7" value="0" aria-label="Avklarade steg i patientfallet"></progress>
+    </div>
+    <div id="caseSteps" class="steps" role="group" aria-label="Steg i patientfallet"></div>
     <div id="caseContent"></div>
   </div>
 </section>

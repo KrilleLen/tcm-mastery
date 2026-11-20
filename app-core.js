@@ -1071,6 +1071,8 @@ const caseQuestions = [
   "Sömn, stress och läkemedel",
 ];
 
+const caseStepLabels = ["Säkerhet", "Frågor", "Mönster", "Mekanism", "Princip", "Val", "Uppföljning"];
+
 function randomCaseIndex(exclude = -1) {
   let index = Math.floor(Math.random() * cases.length);
   if (cases.length > 1 && index === exclude) index = (index + 1) % cases.length;
@@ -1081,6 +1083,7 @@ function createCaseSession(caseIndex = randomCaseIndex()) {
   return {
     caseIndex,
     step: 0,
+    unlocked: 0,
     questions: [],
     patterns: [],
     drafts: {},
@@ -1122,9 +1125,14 @@ function normalizeCaseSession(session) {
     }
   }
 
+  const lastStep = caseStepLabels.length - 1;
+  const step = Math.min(lastStep, Math.max(0, Math.trunc(Number(session.step) || 0)));
+  const unlocked = Math.min(lastStep, Math.max(step, Math.trunc(Number(session.unlocked) || 0)));
+
   return {
     caseIndex: session.caseIndex,
-    step: Math.min(6, Math.max(0, Math.trunc(Number(session.step) || 0))),
+    step,
+    unlocked,
     questions,
     patterns,
     drafts,
@@ -1150,7 +1158,7 @@ function caseIsStarted(session) {
 function getCaseResume() {
   const active = state.caseSession;
   if (!caseIsStarted(active)) return null;
-  return { title: cases[active.caseIndex].title, step: active.step + 1, total: 7 };
+  return { title: cases[active.caseIndex].title, step: active.step + 1, total: caseStepLabels.length };
 }
 
 function renderCaseChooser() {
@@ -1167,7 +1175,7 @@ function renderCaseChooser() {
     .map((item, index) => {
       const selected = index === active.caseIndex;
       const draft = drafts[index];
-      const progress = caseIsStarted(draft) ? `Steg ${draft.step + 1} av 7` : "Starta fall";
+      const progress = caseIsStarted(draft) ? `Steg ${draft.step + 1} av ${caseStepLabels.length}` : "Starta fall";
       return `<button type="button" class="case-choice" data-case-index="${index}" aria-pressed="${selected}"><b>${item.title}</b><span>${selected ? "Valt fall" : progress}</span></button>`;
     })
     .join("");
@@ -1190,17 +1198,54 @@ function selectCase(index) {
   const picker = $(".case-picker");
   if (picker) picker.open = false;
   renderCase();
+  focusCaseStep();
+}
+
+function focusCaseStep() {
   const heading = $("#caseContent h2");
   heading?.setAttribute("tabindex", "-1");
   heading?.focus();
 }
 
+function renderCaseProgress() {
+  const session = state.caseSession;
+  const label = $("#caseStepLabel");
+  const progress = $("#caseProgress");
+  const steps = $("#caseSteps");
+  if (!steps || !label || !progress) return;
+
+  label.textContent = `Steg ${session.step + 1} av ${caseStepLabels.length} · ${caseStepLabels[session.step]}`;
+  progress.max = caseStepLabels.length;
+  progress.value = session.unlocked;
+  steps.innerHTML = caseStepLabels
+    .map((name, index) => {
+      const current = index === session.step;
+      const locked = index > session.unlocked;
+      const completed = index < session.unlocked;
+      const status = completed ? ", avklarat" : locked ? ", låst" : "";
+      return `<button type="button" class="case-step" data-step="${index}" ${current ? 'aria-current="step"' : ""} ${locked ? "disabled" : ""} aria-label="Steg ${index + 1}: ${name}${status}"><span aria-hidden="true">${completed && !current ? "✓" : index + 1}</span><b>${name}</b></button>`;
+    })
+    .join("");
+  steps.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => openCaseStep(Number(button.dataset.step)));
+  });
+}
+
+function invalidateLaterCaseSteps() {
+  const session = state.caseSession;
+  if (session.unlocked <= session.step) return;
+  session.unlocked = session.step;
+  renderCaseProgress();
+}
+
 function saveCaseDraft(step, value) {
+  invalidateLaterCaseSteps();
   state.caseSession.drafts[String(step)] = value;
   save();
 }
 
 function toggleCaseOption(kind, index, button) {
+  invalidateLaterCaseSteps();
   const selected = new Set(state.caseSession[kind]);
   if (selected.has(index)) selected.delete(index);
   else selected.add(index);
@@ -1223,15 +1268,22 @@ function caseNext(ok, message) {
     return;
   }
 
-  state.caseSession.step = Math.min(6, state.caseSession.step + 1);
+  const session = state.caseSession;
+  const next = Math.min(caseStepLabels.length - 1, session.step + 1);
+  session.unlocked = Math.max(next, session.unlocked);
+  openCaseStep(next);
+}
+
+function openCaseStep(step) {
+  if (!Number.isInteger(step) || step < 0 || step > state.caseSession.unlocked) return;
+  state.caseSession.step = step;
   save();
   renderCase();
+  focusCaseStep();
 }
 
 function casePrevious() {
-  state.caseSession.step = Math.max(0, state.caseSession.step - 1);
-  save();
-  renderCase();
+  openCaseStep(Math.max(0, state.caseSession.step - 1));
 }
 
 function renderCase() {
@@ -1239,18 +1291,12 @@ function renderCase() {
   const caseItem = cases[session.caseIndex];
   const step = session.step;
   const title = $("#caseTitle");
-  const steps = $("#caseSteps");
   const content = $("#caseContent");
-  if (!title || !steps || !content) return;
+  if (!title || !content) return;
 
   title.textContent = caseItem.title;
   renderCaseChooser();
-  steps.innerHTML = ["Säkerhet", "Frågor", "Mönster", "Mekanism", "Princip", "Val", "Uppföljning"]
-    .map(
-      (label, index) =>
-        `<div class="step ${index <= step ? "on" : ""}" aria-label="${label}" title="${label}">${index + 1}</div>`,
-    )
-    .join("");
+  renderCaseProgress();
 
   if (step === 0) {
     content.innerHTML = `<span class="eyebrow">Säkerhet före teori</span><h2>${caseItem.intro}</h2><p>Beskriv vilka rödflaggor, läkemedel, graviditetsfrågor eller biomedicinska differentialer som måste kontrolleras.</p><textarea id="caseText" aria-label="Säkerhetsresonemang" oninput="saveCaseDraft(0,this.value)"></textarea><p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="caseNext($('#caseText').value.trim().length>50,'Skriv minst ett par meningar om säkerhet och relevanta rödflaggor.')">Fortsätt</button>`;
@@ -1287,7 +1333,7 @@ function renderCase() {
     const backButton = document.createElement("button");
     backButton.type = "button";
     backButton.className = "ghost case-back";
-    backButton.textContent = "← Föregående steg";
+    backButton.textContent = "Föregående steg";
     backButton.addEventListener("click", casePrevious);
     content.append(backButton);
   }

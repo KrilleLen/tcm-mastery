@@ -53,3 +53,97 @@
   color: var(--muted);
   font-size: .875rem;
 }
+
+.case-progress {
+  display: grid;
+  gap: .45rem;
+  margin-block-end: .85rem;
+}
+
+.case-progress p {
+  color: var(--muted);
+  font-weight: 700;
+  margin: 0;
+}
+
+.case-progress progress {
+  width: 100%;
+  height: .48rem;
+  appearance: none;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--panel2);
+  color: var(--jade);
+  accent-color: var(--jade);
+}
+
+.case-progress progress::-webkit-progress-bar {
+  border-radius: 1rem;
+  background: var(--panel2);
+}
+
+.case-progress progress::-webkit-progress-value {
+  border-radius: 1rem;
+  background: var(--jade);
+}
+
+.case-progress progress::-moz-progress-bar {
+  border-radius: 1rem;
+  background: var(--jade);
+}
+
+#caseSteps {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: .35rem;
+  overflow: visible;
+}
+
+.case-step {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .3rem;
+  padding: .45rem .15rem;
+  min-height: 3rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+}
+
+.case-step span {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  background: var(--panel2);
+  border-radius: 50%;
+  font-weight: 750;
+}
+
+.case-step b {
+  font-size: .875rem;
+}
+
+.case-step:hover:not(:disabled),
+.case-step[aria-current="step"] {
+  border-color: var(--jade);
+  color: var(--jade);
+}
+
+.case-step[aria-current="step"] span {
+  background: var(--jade);
+  color: var(--panel);
+}
+
+.case-step:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+@media (max-width: 680px) {
+  .case-step b {
+    display: none;
+  }
+}
