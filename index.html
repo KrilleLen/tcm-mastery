@@ -271,6 +271,19 @@
     <div id="caseSteps" class="steps" role="group" aria-label="Steg i patientfallet"></div>
     <div id="caseContent"></div>
   </div>
+  <details id="caseHistory" class="panel case-picker" hidden>
+    <summary>Slutförda fall <span id="caseHistoryCount"></span></summary>
+    <div id="caseHistoryList" class="case-choices"></div>
+  </details>
+  <dialog id="caseRecap" class="case-recap" aria-labelledby="caseRecapTitle">
+    <div class="case-recap-header">
+      <h2 id="caseRecapTitle">Fallöversikt</h2>
+      <button type="button" class="ghost" id="caseRecapClose">Stäng</button>
+    </div>
+    <p id="caseRecapDate" class="muted"></p>
+    <p>Dina svar och val från övningen finns här för egen reflektion.</p>
+    <div id="caseRecapSteps"></div>
+  </dialog>
 </section>
 <section id="master" class="view"><div class="title"><span class="eyebrow">Muntligt mästarförhör</span><h1>Försvara ditt resonemang</h1><p>Appen väljer en fråga och kräver fynd för, fynd emot och vad som skulle ändra hypotesen.</p></div><div class="panel master"><span class="badge gold">Mästarfråga</span><q id="masterQ"></q><textarea id="masterText" aria-label="Ditt svar på mästarfrågan" placeholder="Svara högt eller skriv ditt försvar…"></textarea><div class="actions"><button type="button" class="ghost" onclick="speakMaster()">🔊 Läs upp</button><button type="button" class="primary" onclick="nextMaster()">Nästa följdfråga</button></div><div id="masterHint" class="answer"></div></div><div class="title"><span class="eyebrow">Täckning</span><h1>Vad appen faktiskt innehåller</h1></div><div class="coverage"><div class="card"><small>Maciocia</small><b>48/48</b><span>kapitelindex och träningsstruktur</span></div><div class="card"><small>Punktregister</small><b>361/361</b><span>klassiska koder, meridianer</span></div><div class="card"><small>Materia Medica</small><b>102</b><span>centrala studiekort</span></div><div class="card"><small>Formler</small><b>58</b><span>klassiska strukturkort</span></div></div></section>
 </main></div>

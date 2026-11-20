@@ -41,6 +41,7 @@ function loadState() {
         : null,
     studySession: stored.studySession,
     caseDrafts: stored.caseDrafts,
+    caseHistory: stored.caseHistory,
     masterIndex: Number.isInteger(stored.masterIndex) ? stored.masterIndex : 0,
   };
 }
@@ -1149,6 +1150,111 @@ for (const [index, draft] of Object.entries(savedCaseDrafts || {})) {
   }
 }
 
+state.caseHistory = Array.isArray(state.caseHistory)
+  ? state.caseHistory
+      .filter((record) => Number.isInteger(record?.caseIndex) && cases[record.caseIndex])
+      .map((record) => ({
+        ...normalizeCaseSession(record),
+        completedAt: finiteNumber(record.completedAt),
+      }))
+  : [];
+
+const caseDate = new Intl.DateTimeFormat("sv-SE", { dateStyle: "medium" });
+let caseRecapTrigger = null;
+
+function formatCaseDate(timestamp) {
+  const date = new Date(timestamp);
+  return timestamp && Number.isFinite(date.getTime()) ? caseDate.format(date) : "";
+}
+
+function renderCaseHistory() {
+  const historyPanel = $("#caseHistory");
+  const historyList = $("#caseHistoryList");
+  if (!historyPanel || !historyList) return;
+
+  historyPanel.hidden = state.caseHistory.length === 0;
+  $("#caseHistoryCount").textContent = String(state.caseHistory.length);
+  historyList.replaceChildren();
+  const latestFirst = [...state.caseHistory].reverse();
+  latestFirst.forEach((record) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "case-choice";
+    const title = document.createElement("b");
+    title.textContent = cases[record.caseIndex].title;
+    const caption = document.createElement("span");
+    const date = formatCaseDate(record.completedAt);
+    caption.textContent = date ? `Visa svar · ${date}` : "Visa svar";
+    button.append(title, caption);
+    button.addEventListener("click", () => openCaseRecap(record, button));
+    historyList.append(button);
+  });
+}
+
+function openCaseRecap(record, trigger = null) {
+  const dialog = $("#caseRecap");
+  if (!dialog) return;
+
+  caseRecapTrigger = trigger;
+  const item = cases[record.caseIndex];
+  $("#caseRecapTitle").textContent = item.title;
+  const date = formatCaseDate(record.completedAt);
+  $("#caseRecapDate").textContent = date ? `Slutfört ${date}` : "Slutfört fall";
+  const list = $("#caseRecapSteps");
+  list.replaceChildren();
+
+  caseStepLabels.forEach((label, step) => {
+    const selected = step === 1
+      ? record.questions.map((index) => caseQuestions[index])
+      : step === 2
+        ? record.patterns.map((index) => item.patterns[index])
+        : [];
+    const draft = record.drafts[step]?.trim();
+    if (!selected.length && !draft) return;
+
+    const group = document.createElement("details");
+    group.open = true;
+    const heading = document.createElement("summary");
+    heading.textContent = label;
+    group.append(heading);
+    if (selected.length) {
+      const choices = document.createElement("ul");
+      selected.forEach((choice) => {
+        const listItem = document.createElement("li");
+        listItem.textContent = choice;
+        choices.append(listItem);
+      });
+      group.append(choices);
+    }
+    if (draft) {
+      const response = document.createElement("p");
+      response.textContent = draft;
+      group.append(response);
+    }
+    list.append(group);
+  });
+
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function restoreCaseRecapFocus() {
+  if (caseRecapTrigger?.isConnected) caseRecapTrigger.focus();
+  else focusCaseStep();
+  caseRecapTrigger = null;
+}
+
+$("#caseRecapClose")?.addEventListener("click", () => {
+  const dialog = $("#caseRecap");
+  if (typeof dialog.close === "function") dialog.close();
+  else {
+    dialog.removeAttribute("open");
+    restoreCaseRecapFocus();
+  }
+});
+
+$("#caseRecap")?.addEventListener("close", restoreCaseRecapFocus);
+
 function caseIsStarted(session) {
   return Boolean(
     session && (session.step > 0 || Object.values(session.drafts).some((draft) => draft.trim())),
@@ -1297,6 +1403,7 @@ function renderCase() {
   title.textContent = caseItem.title;
   renderCaseChooser();
   renderCaseProgress();
+  renderCaseHistory();
 
   if (step === 0) {
     content.innerHTML = `<span class="eyebrow">Säkerhet före teori</span><h2>${caseItem.intro}</h2><p>Beskriv vilka rödflaggor, läkemedel, graviditetsfrågor eller biomedicinska differentialer som måste kontrolleras.</p><textarea id="caseText" aria-label="Säkerhetsresonemang" oninput="saveCaseDraft(0,this.value)"></textarea><p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="caseNext($('#caseText').value.trim().length>50,'Skriv minst ett par meningar om säkerhet och relevanta rödflaggor.')">Fortsätt</button>`;
@@ -1323,7 +1430,7 @@ function renderCase() {
   }
 
   if (step === 6) {
-    content.innerHTML = `<h2>Stäng loopen</h2><div class="facts"><div class="fact"><small>Effekt</small>Vilka symtom och funktioner ska förändras?</div><div class="fact"><small>Säkerhet</small>Vilka biverkningar och interaktioner följs?</div><div class="fact"><small>Hypotes</small>Vad skulle falsifiera ditt mönster?</div><div class="fact"><small>Beslut</small>När avslutas, ändras eller hänvisas?</div></div><textarea id="caseText" aria-label="Plan för uppföljning" placeholder="Beskriv effektmått, säkerhet, omvärdering och beslut…" oninput="saveCaseDraft(6,this.value)"></textarea><p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="finishCase()">Slutför och skapa nytt fall</button>`;
+    content.innerHTML = `<h2>Stäng loopen</h2><div class="facts"><div class="fact"><small>Effekt</small>Vilka symtom och funktioner ska förändras?</div><div class="fact"><small>Säkerhet</small>Vilka biverkningar och interaktioner följs?</div><div class="fact"><small>Hypotes</small>Vad skulle falsifiera ditt mönster?</div><div class="fact"><small>Beslut</small>När avslutas, ändras eller hänvisas?</div></div><textarea id="caseText" aria-label="Plan för uppföljning" placeholder="Beskriv effektmått, säkerhet, omvärdering och beslut…" oninput="saveCaseDraft(6,this.value)"></textarea><p id="caseError" class="inline-error" role="alert"></p><button type="button" class="primary" onclick="finishCase()">Slutför och visa dina svar</button>`;
   }
 
   const textarea = $("#caseText");
@@ -1346,14 +1453,20 @@ function finishCase() {
     return;
   }
 
-  const previousIndex = state.caseSession.caseIndex;
+  const completed = {
+    ...state.caseSession,
+    drafts: { ...state.caseSession.drafts, 6: followUp },
+    completedAt: Date.now(),
+  };
+  const previousIndex = completed.caseIndex;
   state.casesCompleted += 1;
+  state.caseHistory.push(completed);
   const next = randomCaseIndex(previousIndex);
   state.caseSession = state.caseDrafts[next] || createCaseSession(next);
   delete state.caseDrafts[next];
   save();
-  showToast("Fallet är slutfört och sparat.");
   renderCase();
+  openCaseRecap(completed);
 }
 
 const masterQuestions = [
