@@ -41,8 +41,9 @@
     <aside class="home-hero-aside" aria-label="Ditt studieläge">
       <div class="home-hero-image" aria-hidden="true"></div>
       <div class="home-checkpoint">
-        <strong id="homeCheckpointTitle">Ett kort i taget</strong>
-        <p id="homeCheckpointText">Välj vad du vill repetera och hur många frågor du vill göra.</p>
+        <strong id="homeCheckpointTitle">Dagens studier</strong>
+        <p id="homeCheckpointText">Se vilka kort som är redo och följ dina studier vecka för vecka.</p>
+        <a href="#progress">Se dina framsteg</a>
       </div>
     </aside>
   </div>
@@ -87,6 +88,36 @@
     <p>Reid ger en grund för teorin. Kapitelindexet följer Maciocia. Punktregistret använder Seirin och standardnomenklatur. Örter och formler utgår från respektive Materia Medica och Formulas.</p>
     <p>Öva i ordningen säkerhet, symtom, frågor, mönster, mekanism, princip, val av verktyg och uppföljning.</p>
   </details>
+</section>
+<section id="progress" class="view" aria-labelledby="progressTitle">
+  <div class="title">
+    <h1 id="progressTitle">Dina framsteg</h1>
+    <p>Följ dina repetitioner och se hur mycket av varje register du har påbörjat.</p>
+  </div>
+  <div class="progress-grid">
+    <section class="panel progress-week">
+      <div class="progress-heading">
+        <div><h2>Senaste sju dagarna</h2><p id="progressWeekSummary" class="muted"></p></div>
+        <div><label for="progressGoal">Dagligt mål</label><select id="progressGoal"><option value="3">3 kort</option><option value="5">5 kort</option><option value="10">10 kort</option></select></div>
+      </div>
+      <ol id="progressDays" class="progress-days" aria-label="Repetitioner per dag"></ol>
+      <p id="progressToday" role="status"></p>
+      <a href="#study" class="primary">Öppna studiepasset</a>
+    </section>
+    <section class="panel progress-totals">
+      <h2>Din studiehistorik</h2>
+      <dl class="progress-statistics">
+        <div><dt>Bedömda kort</dt><dd id="progressReviews">0</dd></div>
+        <div><dt>Redo att repetera</dt><dd id="progressDue">0</dd></div>
+        <div><dt>Slutförda patientfall</dt><dd id="progressCases">0</dd></div>
+      </dl>
+      <p class="muted">Framsteg sparas på den här enheten. Veckovyn börjar samla aktivitet från den här versionen.</p>
+    </section>
+  </div>
+  <section class="panel progress-coverage">
+    <h2>Påbörjade kort per register</h2>
+    <div id="progressTopics"></div>
+  </section>
 </section>
 <section id="atlas" class="view" aria-labelledby="atlasTitle">
   <div class="title">

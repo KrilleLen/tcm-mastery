@@ -247,3 +247,48 @@ test("mästarvyn börjar med den första frågan och byter först på begäran",
   assert.match(window.document.querySelector("#masterQ").textContent, /Qi-tonika/);
   dom.window.close();
 });
+
+test("startmenyn öppnar studiepasset, och okända hash-rutter visar startsidan", () => {
+  const dom = loadApp({ hash: "#toast" });
+  const { window } = dom;
+  assert.ok(window.document.querySelector("#home.active"));
+  window.document.querySelector('.site-nav [data-v="study"]').click();
+  assert.equal(window.location.hash, "#study");
+  assert.ok(window.document.querySelector('#study.active'));
+  assert.equal(window.document.querySelector('[aria-current="page"]').dataset.v, "study");
+  dom.window.close();
+});
+
+test("övergripande sök hittar punktkoder och öppnar rätt register", async () => {
+  const dom = loadApp({ hash: "#search" });
+  const { window } = dom;
+  input(window, window.document.querySelector("#globalSearchInput"), "li 4");
+  const link = window.document.querySelector('#globalSearchResults [data-record="LI4"]');
+  assert.ok(link);
+  link.click();
+  await new Promise((resolve) => window.setTimeout(resolve, 10));
+  assert.equal(window.location.hash, "#points/LI4");
+  assert.ok(window.document.querySelector("#points.active"));
+  if (typeof window.openAtlasRecord === "function") {
+    assert.match(window.document.querySelector("#pointDetail").textContent, /Hegu/);
+  }
+  dom.window.close();
+});
+
+test("veckovyn räknar bara nya bedömningar och visar målet efter omladdning", () => {
+  const first = loadApp({ storedState: JSON.stringify({ reviews: 21 }), hash: "#study" });
+  const { window } = first;
+  window.grade(1);
+  window.go("progress");
+  assert.equal(window.document.querySelector("#progressReviews").textContent, "22");
+  assert.match(window.document.querySelector("#progressToday").textContent, /1 av 5/);
+  const goal = window.document.querySelector("#progressGoal");
+  goal.value = "3";
+  goal.dispatchEvent(new window.Event("change"));
+  const stored = window.localStorage.getItem("mastery-v2");
+  first.window.close();
+
+  const second = loadApp({ storedState: stored, hash: "#progress" });
+  assert.match(second.window.document.querySelector("#progressToday").textContent, /1 av 3/);
+  second.window.close();
+});

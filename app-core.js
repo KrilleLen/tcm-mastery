@@ -27,6 +27,9 @@ function loadState() {
     reviews: finiteNumber(stored.reviews),
     correct: finiteNumber(stored.correct),
     attempts: finiteNumber(stored.attempts),
+    dailyGoal: [3, 5, 10].includes(stored.dailyGoal) ? stored.dailyGoal : 5,
+    studyActivity: Object.fromEntries(Object.entries(stored.studyActivity ?? {})
+      .filter(([day, count]) => /^\d{4}-\d{2}-\d{2}$/.test(day) && Number.isSafeInteger(count) && count > 0)),
     casesCompleted: finiteNumber(stored.casesCompleted),
     cards:
       stored.cards && typeof stored.cards === "object" && !Array.isArray(stored.cards)
@@ -41,8 +44,20 @@ function loadState() {
 }
 
 const state = loadState();
+let recordedReviews = state.reviews;
+
+function dayKey(date = new Date()) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 
 function save() {
+  if (state.reviews > recordedReviews) {
+    const today = dayKey();
+    state.studyActivity[today] = (state.studyActivity[today] || 0) + state.reviews - recordedReviews;
+    recordedReviews = state.reviews;
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
@@ -91,6 +106,8 @@ function showToast(message) {
 }
 
 function renderView(id) {
+  if (id === "home") renderHome();
+  if (id === "progress") renderProgress();
   if (id === "search") renderUniversalSearch();
   if (id === "conditions") renderConditions();
   if (id === "points") renderPoints();
@@ -107,7 +124,8 @@ let appliedHash;
 function go(id, updateHistory = true, recordId = null) {
   const requested = document.getElementById(id);
   const target = requested?.classList.contains("view") ? id : "home";
-  const navTarget = ATLAS_VIEWS.includes(target) || target === "search" ? "atlas" : target;
+  const navTarget = ATLAS_VIEWS.includes(target) || target === "search"
+    ? "atlas" : target === "progress" ? "home" : target;
   const activeView = document.getElementById(target);
 
   $$(".view").forEach((view) => view.classList.toggle("active", view === activeView));
@@ -170,6 +188,83 @@ document.addEventListener("click", (event) => {
   if (!document.getElementById(target)?.classList.contains("view")) return;
   event.preventDefault();
   go(target);
+});
+
+function renderHome() {
+  const overview = typeof studyOverview === "function" ? studyOverview() : {};
+  const today = state.studyActivity[dayKey()] || 0;
+  const title = $("#homeCheckpointTitle");
+  const text = $("#homeCheckpointText");
+  const studyLink = $("#homeStudyAction");
+  const caseLink = $("#homeCaseAction");
+  const resumeCase = typeof getCaseResume === "function" ? getCaseResume() : null;
+  if (!title || !text || !studyLink || !caseLink) return;
+
+  studyLink.textContent = overview.inProgress ? "Fortsätt studiepasset" : "Starta ett studiepass";
+  title.textContent = overview.inProgress ? "Ditt pass väntar" : "Dagens studier";
+  const dueText = overview.due === 1
+    ? "1 kort är redo att repetera."
+    : overview.due > 1 ? `${overview.due} kort är redo att repetera.` : "";
+  text.textContent = overview.inProgress
+    ? `${overview.completed} av ${overview.total} kort klara i ditt pågående pass.`
+    : [`${today} av ${state.dailyGoal} kort bedömda i dag.`, dueText].filter(Boolean).join(" ");
+  caseLink.textContent = resumeCase
+    ? `Fortsätt patientfall · steg ${resumeCase.step} av ${resumeCase.total}`
+    : "Öppna patientfall";
+}
+
+function renderProgress() {
+  const today = new Date();
+  const weekday = new Intl.DateTimeFormat("sv-SE", { weekday: "short" });
+  const fullDate = new Intl.DateTimeFormat("sv-SE", { weekday: "long", month: "long", day: "numeric" });
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - 6 + index);
+    return { date, count: state.studyActivity[dayKey(date)] || 0 };
+  });
+  const total = days.reduce((sum, day) => sum + day.count, 0);
+  const scale = Math.max(state.dailyGoal, ...days.map((day) => day.count));
+  const done = days.at(-1).count;
+
+  $("#progressGoal").value = String(state.dailyGoal);
+  $("#progressWeekSummary").textContent = `${total} ${total === 1 ? "bedömning" : "bedömningar"} den här veckan.`;
+  $("#progressToday").textContent = done >= state.dailyGoal
+    ? `Dagens mål uppnått. Du har bedömt ${done} kort.`
+    : `${done} av ${state.dailyGoal} kort bedömda i dag.`;
+  $("#progressReviews").textContent = state.reviews;
+  $("#progressDue").textContent = CARDS.filter((card) =>
+    state.cards[card.id]?.reviews && finiteNumber(state.cards[card.id]?.due) <= Date.now()
+  ).length;
+  $("#progressCases").textContent = state.casesCompleted;
+  $("#progressDays").replaceChildren(...days.map(({ date, count }, index) => {
+    const item = document.createElement("li");
+    item.setAttribute("aria-label", `${fullDate.format(date)}, ${count} ${count === 1 ? "bedömt kort" : "bedömda kort"}`);
+    if (index === 6) item.setAttribute("aria-current", "date");
+    item.innerHTML = `<b aria-hidden="true">${count}</b><span class="day-bar" aria-hidden="true"><i></i></span><span aria-hidden="true">${index === 6 ? "I dag" : weekday.format(date)}</span>`;
+    item.querySelector("i").style.height = `${(count / scale) * 100}%`;
+    return item;
+  }));
+
+  const topics = [
+    ["Diagnostik", "Kliniska kapitel"], ["Punkt", "Akupunkturpunkter"],
+    ["Ört", "Örtkort"], ["Formel", "Formler"],
+  ];
+  $("#progressTopics").replaceChildren(...topics.map(([type, label]) => {
+    const cards = CARDS.filter((card) => card.type === type);
+    const done = cards.filter((card) => Number(state.cards[card.id]?.reviews) > 0).length;
+    const topic = document.createElement("div");
+    topic.className = "progress-topic";
+    topic.innerHTML = `<div><b>${label}</b><span>${done} av ${cards.length}</span></div><progress value="${done}" max="${cards.length || 1}" aria-label="Påbörjade kort inom ${label}"></progress>`;
+    return topic;
+  }));
+}
+
+$("#progressGoal")?.addEventListener("change", (event) => {
+  const goal = Number(event.target.value);
+  if (![3, 5, 10].includes(goal)) return;
+  state.dailyGoal = goal;
+  save();
+  renderProgress();
 });
 
 const SEARCH_GROUPS = [

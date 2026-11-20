@@ -185,3 +185,27 @@ button:disabled { cursor: default; opacity: .65; }
 .search-example { margin: 0 7px 7px 0; }
 @media (max-width: 520px) { .search-label-wide { display: none; } }
 
+.home-checkpoint a { display: inline-block; padding: 9px 0 2px; color: var(--mint); font-size: .89rem; font-weight: 700; text-underline-offset: 3px; }
+.progress-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; }
+.progress-grid .panel, .progress-coverage { padding: clamp(15px, 3vw, 23px); }
+.progress-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.progress-heading label { display: block; font-size: .87rem; font-weight: 700; margin-bottom: 4px; }
+.progress-heading select { padding: 8px; }
+.progress-grid h2, .progress-coverage h2 { margin: 0 0 9px; font-size: 1.6rem; }
+.progress-grid p { margin: 7px 0 14px; }
+.progress-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: clamp(5px, 2vw, 13px); list-style: none; padding: 0; margin: 15px 0; }
+.progress-days li { display: grid; grid-template-rows: auto 90px auto; gap: 5px; text-align: center; color: var(--muted); font-size: .85rem; }
+.progress-days li[aria-current] { color: var(--jade); font-weight: 750; }
+.day-bar { position: relative; display: block; overflow: hidden; border-radius: 8px; background: #edf2e9; }
+.day-bar i { position: absolute; inset: auto 0 0; border-radius: inherit; background: #619a7d; }
+.progress-days li[aria-current] .day-bar i { background: var(--jade); }
+.progress-statistics { margin: 0; }
+.progress-statistics div { border-bottom: 1px solid var(--line); padding: 10px 0; display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.progress-statistics dt { color: var(--muted); }
+.progress-statistics dd { margin: 0; font: 500 1.65rem var(--serif); }
+.progress-coverage { margin-top: 14px; }
+#progressTopics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.progress-topic > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; }
+.progress-topic span { color: var(--muted); font-size: .92rem; }
+.progress-topic progress { display: block; width: 100%; margin-top: 5px; accent-color: var(--jade); }
+@media (max-width: 640px) { .progress-grid, #progressTopics { grid-template-columns: minmax(0, 1fr); } }
