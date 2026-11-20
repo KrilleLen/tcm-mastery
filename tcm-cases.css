@@ -206,3 +206,155 @@
   line-height: 1.55;
   margin-block: .65rem 0;
 }
+
+.oral-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.oral-title p {
+  margin-bottom: 0;
+}
+
+.oral-picker {
+  display: grid;
+  gap: .4rem;
+  min-width: min(100%, 14rem);
+  color: var(--muted);
+  font-size: .875rem;
+  font-weight: 650;
+}
+
+.oral-picker select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: .65rem 2.25rem .65rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  appearance: none;
+  color: var(--text);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--jade) 50%) right 1rem center / .35rem .35rem no-repeat,
+    linear-gradient(135deg, var(--jade) 50%, transparent 50%) right .65rem center / .35rem .35rem no-repeat,
+    var(--panel2);
+}
+
+.oral-picker select:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.oral-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.oral-question-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+}
+
+.oral-question-head .badge {
+  font-size: .875rem;
+  font-weight: 650;
+}
+
+.oral-question {
+  max-width: 26ch;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  line-height: 1.2;
+  margin: .9rem 0 1.25rem;
+}
+
+.oral-label {
+  display: block;
+  margin-bottom: .45rem;
+  font-weight: 650;
+}
+
+.oral-save {
+  min-height: 1.25rem;
+  margin: .35rem 0 .5rem;
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.oral-actions {
+  justify-content: space-between;
+}
+
+.oral-rubric {
+  padding: 1.25rem;
+}
+
+.oral-rubric h2 {
+  margin: 0 0 .5rem;
+  font-size: 1.5rem;
+}
+
+.oral-rubric p {
+  margin: .35rem 0 .9rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.oral-criteria {
+  display: grid;
+  gap: .4rem;
+  padding: 0;
+  margin: 0 0 1.1rem;
+  list-style: none;
+}
+
+.oral-criteria label {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .35rem .6rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  cursor: pointer;
+}
+
+.oral-criteria input {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--jade);
+}
+
+.oral-criteria label:has(input:checked) {
+  border-color: var(--jade);
+  background: var(--panel2);
+}
+
+.oral-rubric progress {
+  display: block;
+  width: 100%;
+  accent-color: var(--jade);
+}
+
+.oral-rubric .oral-progress {
+  margin: .45rem 0 0;
+  font-size: .875rem;
+}
+
+@media (max-width: 760px) {
+  .oral-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .oral-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

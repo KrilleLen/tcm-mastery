@@ -285,7 +285,40 @@
     <div id="caseRecapSteps"></div>
   </dialog>
 </section>
-<section id="master" class="view"><div class="title"><span class="eyebrow">Muntligt mästarförhör</span><h1>Försvara ditt resonemang</h1><p>Appen väljer en fråga och kräver fynd för, fynd emot och vad som skulle ändra hypotesen.</p></div><div class="panel master"><span class="badge gold">Mästarfråga</span><q id="masterQ"></q><textarea id="masterText" aria-label="Ditt svar på mästarfrågan" placeholder="Svara högt eller skriv ditt försvar…"></textarea><div class="actions"><button type="button" class="ghost" onclick="speakMaster()">🔊 Läs upp</button><button type="button" class="primary" onclick="nextMaster()">Nästa följdfråga</button></div><div id="masterHint" class="answer"></div></div><div class="title"><span class="eyebrow">Täckning</span><h1>Vad appen faktiskt innehåller</h1></div><div class="coverage"><div class="card"><small>Maciocia</small><b>48/48</b><span>kapitelindex och träningsstruktur</span></div><div class="card"><small>Punktregister</small><b>361/361</b><span>klassiska koder, meridianer</span></div><div class="card"><small>Materia Medica</small><b>102</b><span>centrala studiekort</span></div><div class="card"><small>Formler</small><b>58</b><span>klassiska strukturkort</span></div></div></section>
+<section id="master" class="view">
+  <div class="title oral-title">
+    <div>
+      <h1>Muntlig träning</h1>
+      <p>Öva på att motivera, ifrågasätta och ompröva ett resonemang.</p>
+    </div>
+    <label class="oral-picker" for="masterSelect">Välj övningsfråga
+      <select id="masterSelect" onchange="selectMaster(this.value)"></select>
+    </label>
+  </div>
+  <div class="oral-layout">
+    <article class="panel master" aria-labelledby="masterQ">
+      <div class="oral-question-head">
+        <span class="badge gold" id="masterPosition"></span>
+        <button type="button" class="ghost" onclick="speakMaster()">Läs upp frågan</button>
+      </div>
+      <h2 class="oral-question" id="masterQ" tabindex="-1"></h2>
+      <label class="oral-label" for="masterText">Stödord eller skrivet svar</label>
+      <textarea id="masterText" placeholder="Skriv några stödord eller formulera hela svaret…" oninput="saveMasterResponse()"></textarea>
+      <p class="oral-save" id="masterStatus" role="status"></p>
+      <div class="actions oral-actions">
+        <button type="button" class="ghost" onclick="nextMaster(-1)">Föregående fråga</button>
+        <button type="button" class="primary" onclick="nextMaster()">Nästa fråga</button>
+      </div>
+    </article>
+    <aside class="panel oral-rubric" aria-labelledby="masterRubricTitle">
+      <h2 id="masterRubricTitle">Fick du med det här?</h2>
+      <p>Bocka av det du tog upp i ditt svar.</p>
+      <ul id="masterHint" class="oral-criteria"></ul>
+      <progress id="masterCriteriaProgress" aria-label="Avprickade delar av svaret" value="0" max="6"></progress>
+      <p id="masterCriteriaCount" class="oral-progress"></p>
+    </aside>
+  </div>
+</section>
 </main></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="conditions.js"></script><script src="points.js"></script><script src="herbs.js"></script><script src="formulas.js"></script><script src="app-core.js"></script></body></html>

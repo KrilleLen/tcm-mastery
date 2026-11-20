@@ -1479,27 +1479,115 @@ const masterQuestions = [
   "Välj tre punkter i samma anatomiska region och förklara hur du undviker sammanblandning och säkerhetsrisk.",
 ];
 
+const masterTopics = [
+  "Att differentiera mönster", "Två Qi-tonika", "Roller i en formel",
+  "När hypotesen behöver omprövas", "Källor och evidens",
+  "Ett symtom, flera mekanismer", "Punkter i samma region",
+];
+
+const masterCriteria = [
+  "Tydligt påstående", "Fynd som talar för", "Fynd som talar emot",
+  "Alternativ hypotes", "Säkerhetsaspekter", "Vad som skulle ändra beslutet",
+];
+
+const MASTER_STORAGE_KEY = "mastery-oral-v1";
 let masterIndex = Math.min(
   masterQuestions.length - 1,
   Math.max(0, Number(state.masterIndex) || 0),
 );
+const masterResponses = loadMasterResponses();
+let masterStorageAvailable = true;
+
+function loadMasterResponses() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(MASTER_STORAGE_KEY) || "{}");
+    return masterQuestions.map((_, index) => {
+      const response = stored?.[index];
+      return {
+        text: typeof response?.text === "string" ? response.text : "",
+        criteria: masterCriteria.map((_, criterion) => response?.criteria?.[criterion] === true),
+      };
+    });
+  } catch (error) {
+    return masterQuestions.map(() => ({ text: "", criteria: masterCriteria.map(() => false) }));
+  }
+}
+
+function renderMasterQuestionChoices() {
+  $("#masterSelect").replaceChildren(
+    ...masterTopics.map((topic, index) => {
+      const response = masterResponses[index];
+      const option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = response.text.trim() || response.criteria.some(Boolean)
+        ? `${topic} · sparat arbete`
+        : topic;
+      return option;
+    }),
+  );
+  $("#masterSelect").value = String(masterIndex);
+}
+
+function renderMasterProgress() {
+  const response = masterResponses[masterIndex];
+  const count = response.criteria.filter(Boolean).length;
+  const hasResponse = response.text.trim() || count;
+  $("#masterCriteriaProgress").value = count;
+  $("#masterCriteriaCount").textContent = `${count} av ${masterCriteria.length} delar avprickade`;
+  $("#masterStatus").textContent = hasResponse
+    ? masterStorageAvailable ? "Sparat på den här enheten" : "Sparat för den här fliken"
+    : "";
+  const select = $("#masterSelect");
+  const topic = masterTopics[masterIndex];
+  select.options[masterIndex].textContent = hasResponse ? `${topic} · sparat arbete` : topic;
+}
 
 function renderMaster() {
   const question = $("#masterQ");
-  const hint = $("#masterHint");
-  if (!question || !hint) return;
+  if (!question) return;
 
+  const response = masterResponses[masterIndex];
+  renderMasterQuestionChoices();
+  $("#masterPosition").textContent = `Fråga ${masterIndex + 1} av ${masterQuestions.length}`;
   question.textContent = masterQuestions[masterIndex];
-  hint.innerHTML =
-    "<b>Ett nivå-7-svar ska innehålla:</b> påstående, fynd för, fynd emot, alternativ hypotes, säkerhet och vad som skulle ändra beslutet.";
+  $("#masterText").value = response.text;
+  $("#masterHint").innerHTML = masterCriteria.map((criterion, index) => `
+    <li>
+      <label>
+        <input type="checkbox" data-master-criterion="${index}" ${response.criteria[index] ? "checked" : ""} onchange="saveMasterResponse()">
+        <span>${criterion}</span>
+      </label>
+    </li>`).join("");
+  renderMasterProgress();
 }
 
-function nextMaster() {
-  masterIndex = (masterIndex + 1) % masterQuestions.length;
-  state.masterIndex = masterIndex;
+function saveMasterResponse() {
+  masterResponses[masterIndex] = {
+    text: $("#masterText").value,
+    criteria: $$("[data-master-criterion]").map((input) => input.checked),
+  };
+  try {
+    localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(masterResponses));
+    masterStorageAvailable = true;
+  } catch (error) {
+    masterStorageAvailable = false;
+  }
+  renderMasterProgress();
+}
+
+function selectMaster(value, focusQuestion = false) {
+  const index = Number(value);
+  if (!Number.isInteger(index) || !masterQuestions[index]) return;
+  masterIndex = index;
+  state.masterIndex = index;
   save();
-  $("#masterText").value = "";
   renderMaster();
+  if (focusQuestion) $("#masterQ").focus();
+}
+
+function nextMaster(direction = 1) {
+  const index = (masterIndex + direction + masterQuestions.length) % masterQuestions.length;
+  selectMaster(index, true);
 }
 
 function speakMaster() {
