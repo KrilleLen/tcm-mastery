@@ -794,10 +794,10 @@ function studyQueues(cards) {
 }
 
 function weakStudyCards(cards) {
-  const lastGrade = (card) => finiteNumber(state.cards[card.id]?.lastGrade, 2);
+  const lastGrade = (card) => state.cards[card.id]?.lastGrade;
   const lapses = (card) => finiteNumber(state.cards[card.id]?.lapses);
   return cards
-    .filter((card) => finiteNumber(state.cards[card.id]?.reviews) && lastGrade(card) <= 1)
+    .filter((card) => finiteNumber(state.cards[card.id]?.reviews) && [0, 1].includes(lastGrade(card)))
     .sort((left, right) => lastGrade(left) - lastGrade(right) || lapses(right) - lapses(left));
 }
 
@@ -939,7 +939,7 @@ function revealStudyAnswer(hintUsed) {
   studySession.readyToGrade = true;
   saveStudySession();
   renderStudyStage();
-  $("#studyAssessmentTitle").focus();
+  $("#studyGuidanceTitle").focus();
 }
 
 $("#studyCheck").addEventListener("click", () => revealStudyAnswer(false));

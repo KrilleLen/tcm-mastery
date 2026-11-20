@@ -106,7 +106,7 @@ test("vägledning och självbedömning visas efter eget svar och ger synlig åte
   assert.ok(document.querySelector("#studyAssessment").classList.contains("hidden"));
   document.querySelector("#studyCheck").click();
   assert.ok(!document.querySelector("#studyAssessment").classList.contains("hidden"));
-  assert.equal(document.activeElement.id, "studyAssessmentTitle");
+  assert.equal(document.activeElement.id, "studyGuidanceTitle");
   document.querySelector(".study-grades .primary").click();
   assert.ok(document.querySelector("#studyAssessment").classList.contains("hidden"));
   assert.match(document.querySelector("#studyFeedback").textContent, /Nästa repetition om 3 dagar/);
@@ -127,6 +127,7 @@ test("ett pass med svåra kort använder de senaste bedömningarna och respekter
     cards: {
       "point:LI4": { reviews: 2, lastGrade: 0, due: Date.now() + 60000 },
       "point:LI5": { reviews: 1, lastGrade: 2 },
+      "point:LI6": { reviews: 1, lastGrade: null },
       "herb:Ren Shen": { reviews: 1, lastGrade: 0 },
     },
   });
