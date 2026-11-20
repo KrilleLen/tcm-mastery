@@ -40,6 +40,7 @@ function loadState() {
         ? stored.caseSession
         : null,
     studySession: stored.studySession,
+    caseDrafts: stored.caseDrafts,
     masterIndex: Number.isInteger(stored.masterIndex) ? stored.masterIndex : 0,
   };
 }
@@ -1131,6 +1132,68 @@ function normalizeCaseSession(session) {
 }
 
 state.caseSession = normalizeCaseSession(state.caseSession);
+const savedCaseDrafts = state.caseDrafts;
+state.caseDrafts = {};
+
+for (const [index, draft] of Object.entries(savedCaseDrafts || {})) {
+  if (draft?.caseIndex === Number(index) && cases[draft.caseIndex]) {
+    state.caseDrafts[index] = normalizeCaseSession(draft);
+  }
+}
+
+function caseIsStarted(session) {
+  return Boolean(
+    session && (session.step > 0 || Object.values(session.drafts).some((draft) => draft.trim())),
+  );
+}
+
+function getCaseResume() {
+  const active = state.caseSession;
+  if (!caseIsStarted(active)) return null;
+  return { title: cases[active.caseIndex].title, step: active.step + 1, total: 7 };
+}
+
+function renderCaseChooser() {
+  const choices = $("#caseChoices");
+  if (!choices) return;
+
+  const active = state.caseSession;
+  const drafts = cases.map((_, index) =>
+    index === active.caseIndex ? active : state.caseDrafts[index],
+  );
+  const draftCount = drafts.filter(caseIsStarted).length;
+  $("#caseDraftCount").textContent = draftCount ? `${draftCount} pågående` : "";
+  choices.innerHTML = cases
+    .map((item, index) => {
+      const selected = index === active.caseIndex;
+      const draft = drafts[index];
+      const progress = caseIsStarted(draft) ? `Steg ${draft.step + 1} av 7` : "Starta fall";
+      return `<button type="button" class="case-choice" data-case-index="${index}" aria-pressed="${selected}"><b>${item.title}</b><span>${selected ? "Valt fall" : progress}</span></button>`;
+    })
+    .join("");
+  choices.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => selectCase(Number(button.dataset.caseIndex)));
+  });
+}
+
+function selectCase(index) {
+  if (!cases[index]) return;
+
+  const previous = state.caseSession;
+  if (previous.caseIndex !== index) {
+    if (caseIsStarted(previous)) state.caseDrafts[previous.caseIndex] = previous;
+    state.caseSession = state.caseDrafts[index] || createCaseSession(index);
+    delete state.caseDrafts[index];
+    save();
+  }
+
+  const picker = $(".case-picker");
+  if (picker) picker.open = false;
+  renderCase();
+  const heading = $("#caseContent h2");
+  heading?.setAttribute("tabindex", "-1");
+  heading?.focus();
+}
 
 function saveCaseDraft(step, value) {
   state.caseSession.drafts[String(step)] = value;
@@ -1181,6 +1244,7 @@ function renderCase() {
   if (!title || !steps || !content) return;
 
   title.textContent = caseItem.title;
+  renderCaseChooser();
   steps.innerHTML = ["Säkerhet", "Frågor", "Mönster", "Mekanism", "Princip", "Val", "Uppföljning"]
     .map(
       (label, index) =>
@@ -1238,7 +1302,9 @@ function finishCase() {
 
   const previousIndex = state.caseSession.caseIndex;
   state.casesCompleted += 1;
-  state.caseSession = createCaseSession(randomCaseIndex(previousIndex));
+  const next = randomCaseIndex(previousIndex);
+  state.caseSession = state.caseDrafts[next] || createCaseSession(next);
+  delete state.caseDrafts[next];
   save();
   showToast("Fallet är slutfört och sparat.");
   renderCase();

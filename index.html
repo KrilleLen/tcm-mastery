@@ -252,7 +252,22 @@
     </div>
   </div>
 </section>
-<section id="case" class="view"><div class="title"><span class="eyebrow">Patientfall</span><h1 id="caseTitle">Kliniskt resonemang under kontroll</h1><p>Arbeta stegvis. Behandlingsval är låst tills säkerhet, mönster, mekanism och princip är formulerade.</p></div><div class="panel casebox"><div id="caseSteps" class="steps"></div><div id="caseContent"></div></div></section>
+<section id="case" class="view">
+  <div class="title">
+    <span class="eyebrow">Patientfall</span>
+    <h1 id="caseTitle">Kliniskt resonemang</h1>
+    <p>Arbeta steg för steg. Behandlingsval låses upp efter säkerhet, mönster, mekanism och princip.</p>
+  </div>
+  <details class="panel case-picker">
+    <summary>Välj patientfall <span id="caseDraftCount"></span></summary>
+    <p>Du kan växla mellan fall och fortsätta där du slutade.</p>
+    <div id="caseChoices" class="case-choices"></div>
+  </details>
+  <div class="panel casebox">
+    <div id="caseSteps" class="steps"></div>
+    <div id="caseContent"></div>
+  </div>
+</section>
 <section id="master" class="view"><div class="title"><span class="eyebrow">Muntligt mästarförhör</span><h1>Försvara ditt resonemang</h1><p>Appen väljer en fråga och kräver fynd för, fynd emot och vad som skulle ändra hypotesen.</p></div><div class="panel master"><span class="badge gold">Mästarfråga</span><q id="masterQ"></q><textarea id="masterText" aria-label="Ditt svar på mästarfrågan" placeholder="Svara högt eller skriv ditt försvar…"></textarea><div class="actions"><button type="button" class="ghost" onclick="speakMaster()">🔊 Läs upp</button><button type="button" class="primary" onclick="nextMaster()">Nästa följdfråga</button></div><div id="masterHint" class="answer"></div></div><div class="title"><span class="eyebrow">Täckning</span><h1>Vad appen faktiskt innehåller</h1></div><div class="coverage"><div class="card"><small>Maciocia</small><b>48/48</b><span>kapitelindex och träningsstruktur</span></div><div class="card"><small>Punktregister</small><b>361/361</b><span>klassiska koder, meridianer</span></div><div class="card"><small>Materia Medica</small><b>102</b><span>centrala studiekort</span></div><div class="card"><small>Formler</small><b>58</b><span>klassiska strukturkort</span></div></div></section>
 </main></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
