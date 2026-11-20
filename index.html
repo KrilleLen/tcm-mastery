@@ -13,11 +13,12 @@
 <title>Mästaren · TCM-studier</title>
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="tcm-study.css">
+<link rel="stylesheet" href="tcm-offline.css">
 </head>
 <body>
 <a href="#main" class="skip-link">Hoppa till innehållet</a>
 <div class="app">
-<header class="site-header"><a class="brand" href="#home" aria-label="Mästaren, startsida"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren</b><small>Studieapp för akupunktur och TCM</small></div></a><div class="header-actions"><a href="#search" class="pill header-search"><span aria-hidden="true">⌕</span> Sök<span class="search-label-wide"> i atlasen</span></a><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">＋ App</button></div></header>
+<header class="site-header"><a class="brand" href="#home" aria-label="Mästaren, startsida"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren</b><small>Studieapp för akupunktur och TCM</small></div></a><div class="header-actions"><a href="#search" class="pill header-search"><span aria-hidden="true">⌕</span> Sök<span class="search-label-wide"> i atlasen</span></a><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">Installera</button></div></header>
 <nav class="site-nav" aria-label="Huvudmeny">
   <div class="row">
     <a href="#home" data-v="home" aria-current="page"><span aria-hidden="true">⌂</span>Start</a>
@@ -27,6 +28,13 @@
     <a href="#master" data-v="master"><span aria-hidden="true">◌</span>Muntligt</a>
   </div>
 </nav>
+<aside id="offlineStatus" class="offline-strip" aria-label="Offline och uppdateringar" hidden>
+  <div aria-live="polite">
+    <p id="offlineLabel"></p>
+    <p id="offlineMessage" class="offline-message" hidden></p>
+  </div>
+  <button id="updateAppButton" type="button" hidden>Uppdatera appen</button>
+</aside>
 <main id="main" tabindex="-1">
 <section id="home" class="view active" aria-labelledby="homeTitle">
   <div class="home-hero">
@@ -340,4 +348,9 @@
 </section>
 </main></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<dialog id="appInstallDialog" class="install-dialog" aria-labelledby="appInstallTitle">
+  <h2 id="appInstallTitle">Installera Mästaren</h2>
+  <p id="appInstallDescription"></p>
+  <button type="button" id="closeInstallDialog">Stäng</button>
+</dialog>
 <script src="conditions.js"></script><script src="points.js"></script><script src="herbs.js"></script><script src="formulas.js"></script><script src="app-core.js"></script></body></html>

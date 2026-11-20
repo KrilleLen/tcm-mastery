@@ -419,6 +419,12 @@ document.addEventListener("keydown", (event) => {
 });
 
 let deferredInstallPrompt = null;
+let offlineRegistration = null;
+let offlineSetupFailed = false;
+let appUpdateReady = false;
+let updateRequested = false;
+let updateTimer;
+let lastUpdateCheck = 0;
 
 function isStandaloneApp() {
   const displayModeStandalone =
@@ -429,14 +435,15 @@ function isStandaloneApp() {
 
 function syncInstallButton() {
   const button = $("#installButton");
-  if (button) button.hidden = isStandaloneApp();
+  if (!button) return;
+  button.hidden = isStandaloneApp();
+  button.textContent = "Installera";
 }
 
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  const button = $("#installButton");
-  if (button) button.textContent = "Installera";
+  syncInstallButton();
 });
 
 window.addEventListener("appinstalled", () => {
@@ -446,6 +453,26 @@ window.addEventListener("appinstalled", () => {
   showToast("Appen är installerad och kan öppnas från hemskärmen.");
 });
 
+function showInstallInstructions() {
+  const isiOS =
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const instructions = isiOS
+    ? "Öppna sidan i Safari. Tryck på Dela och välj Lägg till på hemskärmen."
+    : "Öppna webbläsarens meny och välj Installera app eller Lägg till på startskärmen.";
+  const dialog = $("#appInstallDialog");
+  const description = $("#appInstallDescription");
+  if (!dialog || !description) return;
+
+  description.textContent = instructions;
+  if (dialog.open) return;
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else {
+    dialog.setAttribute("open", "");
+    $("#closeInstallDialog")?.focus();
+  }
+}
+
 async function installHelp() {
   if (isStandaloneApp()) {
     showToast("Appen är redan installerad och körs från hemskärmen.");
@@ -453,21 +480,163 @@ async function installHelp() {
   }
 
   if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    const choice = await deferredInstallPrompt.userChoice;
-    if (choice?.outcome === "accepted") showToast("Installationen har startat.");
+    const prompt = deferredInstallPrompt;
     deferredInstallPrompt = null;
+    try {
+      await prompt.prompt();
+    } catch (error) {
+      showInstallInstructions();
+    }
     return;
   }
 
-  const isiOS =
-    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if (isiOS) {
-    showToast("På iPhone eller iPad: tryck Dela i Safari och välj Lägg till på hemskärmen.");
-  } else {
-    showToast("Öppna webbläsarens meny och välj Installera app eller Lägg till på startskärmen.");
+  showInstallInstructions();
+}
+
+function closeInstallInstructions() {
+  const dialog = $("#appInstallDialog");
+  if (typeof dialog?.close === "function") dialog.close();
+  else dialog?.removeAttribute("open");
+  $("#installButton")?.focus();
+}
+
+function renderOfflineStatus(message = "") {
+  const strip = $("#offlineStatus");
+  if (!strip) return;
+
+  const update = appUpdateReady || Boolean(offlineRegistration?.waiting);
+  const ready = Boolean(offlineRegistration?.active || navigator.serviceWorker?.controller);
+  const online = navigator.onLine;
+  const label = $("#offlineLabel");
+  const detail = $("#offlineMessage");
+  const button = $("#updateAppButton");
+
+  strip.hidden = false;
+  strip.dataset.kind = update ? "update" : "offline";
+  if (updateRequested) label.textContent = "Uppdaterar appen …";
+  else if (update) label.textContent = "En ny version av Mästaren är redo.";
+  else if (ready) label.textContent = online ? "Tillgänglig offline" : "Offline · Appen är tillgänglig";
+  else if (!online) label.textContent = "Offline · Appen kunde inte förberedas";
+  else if (offlineSetupFailed) label.textContent = "Offlineläge är inte tillgängligt här";
+  else label.textContent = "Förbereder offlineläge …";
+
+  detail.hidden = !message;
+  detail.textContent = message;
+  button.hidden = !update;
+  button.disabled = updateRequested;
+}
+
+function hasUnsavedUpdateDraft() {
+  if ($("#studyText")?.value.trim() || $("#masterText")?.value.trim()) return true;
+
+  const session = state.caseSession;
+  const hasCaseWork = session && (
+    session.step > 0 ||
+    Object.values(session.drafts || {}).some((draft) => typeof draft === "string" && draft.trim()) ||
+    session.questions?.length ||
+    session.patterns?.length
+  );
+  if (!hasCaseWork) return false;
+
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return JSON.stringify(stored?.caseSession) !== JSON.stringify(session);
+  } catch (error) {
+    return true;
   }
+}
+
+function reloadForUpdate() {
+  if (hasUnsavedUpdateDraft()) {
+    renderOfflineStatus("Slutför ditt pågående svar före uppdateringen så att texten finns kvar.");
+    return;
+  }
+
+  location.reload();
+}
+
+function applyAppUpdate() {
+  if (updateRequested) return;
+  if (appUpdateReady) {
+    reloadForUpdate();
+    return;
+  }
+
+  const worker = offlineRegistration?.waiting;
+  if (!worker) return;
+  if (hasUnsavedUpdateDraft()) {
+    renderOfflineStatus("Slutför ditt pågående svar före uppdateringen så att texten finns kvar.");
+    return;
+  }
+
+  updateRequested = true;
+  renderOfflineStatus();
+  updateTimer = setTimeout(() => {
+    updateRequested = false;
+    renderOfflineStatus("Uppdateringen tog längre tid än väntat. Försök igen.");
+  }, 12000);
+  try {
+    worker.postMessage({ type: "ACTIVATE_UPDATE" });
+  } catch (error) {
+    clearTimeout(updateTimer);
+    updateRequested = false;
+    renderOfflineStatus("Uppdateringen kunde inte startas. Försök igen.");
+  }
+}
+
+function checkForAppUpdate() {
+  if (!offlineRegistration || !navigator.onLine || Date.now() - lastUpdateCheck < 300000) return;
+  lastUpdateCheck = Date.now();
+  offlineRegistration.update().catch(() => {});
+}
+
+function setupOfflineApp() {
+  $("#closeInstallDialog")?.addEventListener("click", closeInstallInstructions);
+  $("#updateAppButton")?.addEventListener("click", applyAppUpdate);
+  window.addEventListener("offline", () => renderOfflineStatus());
+  window.addEventListener("online", () => {
+    renderOfflineStatus();
+    checkForAppUpdate();
+  });
+  window.addEventListener("focus", checkForAppUpdate);
+
+  const serviceWorker = navigator.serviceWorker;
+  if (!serviceWorker) {
+    offlineSetupFailed = true;
+    renderOfflineStatus();
+    return;
+  }
+
+  let previousController = serviceWorker.controller;
+  serviceWorker.addEventListener("controllerchange", () => {
+    const controller = serviceWorker.controller;
+    if (controller && previousController && controller !== previousController) appUpdateReady = true;
+    previousController = controller;
+
+    if (controller && updateRequested) {
+      clearTimeout(updateTimer);
+      updateRequested = false;
+      appUpdateReady = true;
+      renderOfflineStatus();
+      reloadForUpdate();
+    } else {
+      renderOfflineStatus();
+    }
+  });
+
+  renderOfflineStatus();
+  serviceWorker.register("./sw.js", { updateViaCache: "none" }).then((registration) => {
+    offlineRegistration = registration;
+    function trackInstallation() {
+      registration.installing?.addEventListener("statechange", () => renderOfflineStatus());
+    }
+    registration.addEventListener("updatefound", trackInstallation);
+    trackInstallation();
+    renderOfflineStatus();
+  }).catch(() => {
+    offlineSetupFailed = true;
+    renderOfflineStatus();
+  });
 }
 
 let selectedCondition = 0;
@@ -1697,6 +1866,4 @@ initChannels();
 syncInstallButton();
 routeFromHash();
 
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
-}
+setupOfflineApp();
