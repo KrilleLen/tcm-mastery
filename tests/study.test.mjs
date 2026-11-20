@@ -66,3 +66,36 @@ test("den valda passlängden bestämmer hur många frågor som visas", (t) => {
   assert.equal(document.querySelector("#studyProgress").max, 10);
   assert.equal(document.querySelector("#studyPosition").textContent, "Kort 1 av 10");
 });
+
+test("en omladdning bevarar exakt aktuellt kort, bedömningar, utkast och visad vägledning", (t) => {
+  const first = loadStudy(t);
+  const { document } = first;
+  document.querySelector("#studyTopic").value = "formula";
+  document.querySelector("#studySetup button").click();
+  first.grade(2);
+  const question = document.querySelector("#studyQ").textContent;
+  const draft = document.querySelector("#studyText");
+  draft.value = "Mitt sparade resonemang";
+  draft.dispatchEvent(new first.Event("input"));
+  first.showStudyAnswer();
+
+  const state = JSON.parse(first.localStorage.getItem("mastery-v2"));
+  const restored = loadStudy(t, state, { random: 0.24 });
+  assert.equal(restored.document.querySelector("#studyQ").textContent, question);
+  assert.equal(restored.document.querySelector("#studyText").value, draft.value);
+  assert.equal(restored.document.querySelector("#studyPosition").textContent, "Kort 2 av 5");
+  assert.ok(!restored.document.querySelector("#studyA").classList.contains("hidden"));
+  assert.equal(restored.studyOverview().inProgress, true);
+  restored.grade(2);
+  assert.equal(restored.document.querySelector("#studyPosition").textContent, "Kort 3 av 5");
+  assert.equal(JSON.parse(restored.localStorage.getItem("mastery-v2")).correct, 1);
+});
+
+test("ett skadat sparat studiepass startar om utan att förlora tidigare repetitioner", (t) => {
+  const window = loadStudy(t, {
+    cards: { "point:LI4": { reviews: 1, due: Date.now() - 60000 } },
+    studySession: { topic: "herb", length: 5, queue: ["point:LI4"], grades: [] },
+  });
+  assert.match(window.document.querySelector("#studyQ").textContent, /LI4/);
+  assert.equal(window.studyOverview().started, 1);
+});

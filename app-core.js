@@ -39,6 +39,7 @@ function loadState() {
       stored.caseSession && typeof stored.caseSession === "object"
         ? stored.caseSession
         : null,
+    studySession: stored.studySession,
     masterIndex: Number.isInteger(stored.masterIndex) ? stored.masterIndex : 0,
   };
 }
@@ -740,12 +741,32 @@ function allCards() {
 }
 
 const CARDS = allCards();
-let currentCard = null;
+const STUDY_CARD_BY_ID = new Map(CARDS.map((card) => [card.id, card]));
+const STUDY_TOPICS = ["all", "condition", "point", "herb", "formula"];
 const STUDY_LENGTHS = [5, 10, 15];
-let studySession = null;
-let studyFirst = true;
-let studyHintUsed = false;
-let studyStartedAt = 0;
+let currentCard = null;
+let studySession = restoreStudySession(state.studySession);
+
+function restoreStudySession(session) {
+  if (!session || !STUDY_TOPICS.includes(session.topic) || !STUDY_LENGTHS.includes(session.length)) {
+    return null;
+  }
+
+  const { topic, length, queue, grades } = session;
+  if (!Array.isArray(queue) || queue.length > length || new Set(queue).size !== queue.length ||
+      queue.some((id) => !STUDY_CARD_BY_ID.has(id) || (topic !== "all" && !id.startsWith(topic + ":"))) ||
+      !Array.isArray(grades) || grades.length > queue.length ||
+      grades.some((gradeValue) => ![0, 1, 2].includes(gradeValue))) {
+    return null;
+  }
+
+  return {
+    topic, length, queue, grades,
+    draft: typeof session.draft === "string" ? session.draft : "",
+    hintUsed: session.hintUsed === true,
+    startedAt: finiteNumber(session.startedAt) || Date.now(),
+  };
+}
 
 function studyCardsFor(topic) {
   return topic === "all" ? CARDS : CARDS.filter((card) => card.id.startsWith(topic + ":"));
@@ -786,7 +807,8 @@ function studyOverview() {
   return {
     started: CARDS.length - fresh.length,
     due: due.length,
-    inProgress: completed > 0 && completed < total,
+    inProgress: completed < total &&
+      (completed > 0 || Boolean(studySession.draft.trim()) || studySession.hintUsed),
     completed,
     total,
   };
@@ -807,10 +829,18 @@ function updateStudyMeta() {
 }
 
 function startStudy(topic = "all", length = 5) {
-  studySession = { topic, length, queue: studyQueue(topic, length), grades: [] };
-  $("#studyTopic").value = topic;
-  $("#studyLength").value = String(length);
+  if (!STUDY_TOPICS.includes(topic)) topic = "all";
+  studySession = {
+    topic, length, queue: studyQueue(topic, length), grades: [],
+    draft: "", hintUsed: false, startedAt: Date.now(),
+  };
+  saveStudySession();
   newStudy();
+}
+
+function saveStudySession() {
+  state.studySession = studySession;
+  save();
 }
 
 function renderStudySummary() {
@@ -842,27 +872,32 @@ function newStudy() {
   }
 
   const { queue, grades } = studySession;
-  currentCard = CARDS.find((card) => card.id === queue[grades.length]) ?? null;
+  currentCard = STUDY_CARD_BY_ID.get(queue[grades.length]) ?? null;
+  $("#studyTopic").value = studySession.topic;
+  $("#studyLength").value = String(studySession.length);
   updateStudyMeta();
   if (!currentCard) {
     renderStudySummary();
     return;
   }
 
-  studyFirst = true;
-  studyHintUsed = false;
-  studyStartedAt = Date.now();
   $("#studySummary").classList.add("hidden");
   $("#studyCard").classList.remove("hidden");
   $("#studyBadge").textContent = currentCard.type;
   $("#studyQ").textContent = currentCard.q;
   $("#studyA").textContent = currentCard.a;
-  $("#studyA").classList.add("hidden");
-  $("#studyText").value = "";
+  $("#studyA").classList.toggle("hidden", !studySession.hintUsed);
+  $("#studyText").value = studySession.draft;
   $("#studyPosition").textContent = `Kort ${grades.length + 1} av ${queue.length}`;
   $("#studyProgress").max = queue.length;
   $("#studyProgress").value = grades.length;
 }
+
+$("#studyText").addEventListener("input", (event) => {
+  if (!currentCard) return;
+  studySession.draft = event.target.value;
+  saveStudySession();
+});
 
 $("#studyTopic").addEventListener("change", updateStudySetup);
 $("#studySetup").addEventListener("submit", (event) => {
@@ -880,8 +915,8 @@ $("#studyChange").addEventListener("click", () => {
 
 function showStudyAnswer() {
   if (!currentCard) return;
-  studyFirst = false;
-  studyHintUsed = true;
+  studySession.hintUsed = true;
+  saveStudySession();
   $("#studyA").classList.remove("hidden");
 }
 
@@ -900,27 +935,31 @@ function grade(gradeValue) {
     lapses: 0,
   };
   const oldInterval = finiteNumber(previous.intervalDays);
+  const { hintUsed, startedAt } = studySession;
   let intervalDays;
 
   if (gradeValue === 0) intervalDays = 10 / (24 * 60);
   else if (gradeValue === 1) intervalDays = oldInterval ? Math.max(1, oldInterval * 1.25) : 1;
-  else if (studyHintUsed) intervalDays = oldInterval ? Math.max(1, oldInterval * 1.6) : 1;
+  else if (hintUsed) intervalDays = oldInterval ? Math.max(1, oldInterval * 1.6) : 1;
   else intervalDays = oldInterval ? Math.max(3, oldInterval * 2.3) : 3;
 
   state.attempts += 1;
   state.reviews += 1;
-  if (gradeValue === 2 && studyFirst) state.correct += 1;
+  if (gradeValue === 2 && !hintUsed) state.correct += 1;
   state.cards[currentCard.id] = {
     reviews: finiteNumber(previous.reviews) + 1,
     intervalDays,
     due: Date.now() + intervalDays * 24 * 60 * 60 * 1000,
     lastGrade: gradeValue,
-    lastResponseSeconds: Math.max(1, Math.round((Date.now() - studyStartedAt) / 1000)),
-    usedHint: studyHintUsed,
+    lastResponseSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+    usedHint: hintUsed,
     lapses: finiteNumber(previous.lapses) + (gradeValue === 0 ? 1 : 0),
   };
   studySession.grades.push(gradeValue);
-  save();
+  studySession.draft = "";
+  studySession.hintUsed = false;
+  studySession.startedAt = Date.now();
+  saveStudySession();
   showToast(`Nästa repetition om ${formatInterval(intervalDays)}.`);
   newStudy();
 }
