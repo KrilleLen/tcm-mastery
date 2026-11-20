@@ -77,3 +77,22 @@ test("bokmärkta kort kan filtreras och finns kvar vid omladdning", () => {
   assert.match(b.querySelector("#pointList").textContent, /Inga sparade kort ännu/);
   second.close();
 });
+
+test("jämförelsen visar två valda kort sida vid sida med källor och säkerhet", () => {
+  const window = openApp("#herbs");
+  const q = (selector) => window.document.querySelector(selector);
+  q('[data-atlas-id="Ren Shen"]').click();
+  q("#herbs .atlas-compare-toggle").click();
+  const search = q("#herbCompareSearch");
+  search.value = "Gui Zhi";
+  search.dispatchEvent(new window.Event("input"));
+  q('[data-atlas-compare="Gui Zhi"]').click();
+  const table = q("#herbs .atlas-compare-table");
+  assert.match(table.textContent, /Ren Shen.*Gui Zhi/s);
+  assert.equal([...table.querySelectorAll("tbody th")].at(-2).textContent, "Säkerhet");
+  assert.equal([...table.querySelectorAll("tbody th")].at(-1).textContent, "Källa");
+  q("#herbs .atlas-compare-toggle").click();
+  assert.ok(q("#herbs .atlas-comparison").hidden);
+  assert.match(q("#herbDetail h2").textContent, /Ren Shen/);
+  window.close();
+});

@@ -160,3 +160,98 @@
 .atlas-saved-mark {
   color: var(--gold);
 }
+
+.atlas-comparing .atlas-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.atlas-comparing .atlas-list {
+  display: none;
+}
+
+.atlas-detail[hidden],
+.atlas-comparison[hidden],
+.atlas-compare-table[hidden] {
+  display: none;
+}
+
+.atlas-comparison {
+  padding: clamp(.875rem, 3vw, 1.75rem);
+}
+
+.atlas-comparison h2 {
+  margin: 0;
+}
+
+.atlas-compare-primary,
+.atlas-compare-count {
+  color: var(--muted);
+}
+
+.atlas-compare-count {
+  font-size: .875rem;
+  margin: 0 0 .5rem;
+}
+
+.atlas-compare-search {
+  margin-top: .35rem;
+  max-width: 34rem;
+}
+
+.atlas-compare-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.atlas-compare-options button {
+  padding: .5rem .7rem;
+  text-align: left;
+}
+
+.atlas-compare-options button[aria-pressed="true"] {
+  border-color: var(--jade);
+  color: var(--jade);
+}
+
+.atlas-compare-table table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  overflow-wrap: anywhere;
+  margin-top: 1rem;
+}
+
+.atlas-compare-table caption {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: .55rem;
+}
+
+.atlas-compare-table th,
+.atlas-compare-table td {
+  padding: clamp(.35rem, 1.5vw, .9rem);
+  vertical-align: top;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.45;
+}
+
+.atlas-compare-table thead {
+  background: var(--panel2);
+}
+
+.atlas-compare-table th:first-child {
+  width: clamp(3.75rem, 20%, 11rem);
+  color: var(--muted);
+}
+
+@media (max-width: 500px) {
+  .atlas-compare-table th:first-child {
+    font-size: .8125rem;
+  }
+
+  .atlas-compare-table td {
+    font-size: .875rem;
+  }
+}

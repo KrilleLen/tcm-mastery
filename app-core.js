@@ -646,6 +646,12 @@ const ATLAS = {
     title: (item) => `Kapitel ${item.chapter} · ${item.title}`,
     subtitle: (item) => `${item.english} · ${item.patterns.slice(0, 2).join(" / ")}`,
     search: (item) => [item.title, item.english, item.patterns, `kapitel ${item.chapter}`],
+    group: (item) => item.patterns[0],
+    compare: (item) => [
+      ["Engelskt namn", item.english],
+      ["Mönster", item.patterns.join(", ")],
+      ["Bokkapitel", String(item.chapter)],
+    ],
     detail: conditionAtlasDetail,
     noResults: ["Inga kapitel hittades", "Prova ett annat ord eller mönsternamn."],
   },
@@ -655,6 +661,12 @@ const ATLAS = {
     title: (item) => item.id + (item.name ? ` · ${item.name}` : ""),
     subtitle: (item) => item.channel,
     search: (item) => [item.id, item.name, item.channel],
+    group: (item) => item.channel,
+    compare: (item) => [
+      ["Punktkod", item.id],
+      ["Namn", item.name || "Ej angivet"],
+      ["Meridian", item.channel],
+    ],
     detail: pointAtlasDetail,
     noResults: ["Inga punkter hittades", "Kontrollera punktkod, namn eller meridian."],
   },
@@ -664,6 +676,12 @@ const ATLAS = {
     title: (item) => item.pinyin,
     subtitle: (item) => `${item.category} · ${item.pattern}`,
     search: (item) => [item.pinyin, item.category, item.pattern, item.functions],
+    group: (item) => item.category.split(",")[0],
+    compare: (item) => [
+      ["Kategori", item.category],
+      ["Mönsterlogik", item.pattern],
+      ["Funktionsområden", item.functions],
+    ],
     detail: herbAtlasDetail,
     noResults: ["Inga örter hittades", "Prova namn, kategori, funktion eller mönster."],
   },
@@ -673,6 +691,12 @@ const ATLAS = {
     title: (item) => item.name,
     subtitle: (item) => `${item.category} · ${item.pattern}`,
     search: (item) => [item.name, item.category, item.pattern, item.ingredients],
+    group: (item) => item.category.split(",")[0],
+    compare: (item) => [
+      ["Kategori", item.category],
+      ["Mönster", item.pattern],
+      ["Ingrediensstruktur", item.ingredients.join(", ")],
+    ],
     detail: formulaAtlasDetail,
     noResults: ["Inga formler hittades", "Prova formelnamn, kategori, mönster eller ört."],
   },
@@ -681,6 +705,7 @@ const ATLAS = {
 const atlasSelected = {};
 const atlasQueries = {};
 const atlasSavedOnly = new Set();
+const atlasComparisons = {};
 const ATLAS_BOOKMARK_KEY = "tcm-atlas-bookmarks-v1";
 let atlasBookmarks = loadAtlasBookmarks() || {};
 let channel = "Alla";
@@ -782,6 +807,19 @@ function initChannels() {
     const input = $(`#${config.prefix}Search`);
     section.querySelector(".atlas-back").addEventListener("click", () => closeAtlasReader(view));
     section.querySelector(".atlas-save").addEventListener("click", () => saveAtlasBookmark(view));
+    section.querySelector(".atlas-compare-toggle").addEventListener("click", () => toggleAtlasComparison(view));
+    const comparison = section.querySelector(".atlas-comparison");
+    const compareSearch = comparison.querySelector(".atlas-compare-search");
+    compareSearch.addEventListener("input", () => renderAtlasComparison(view));
+    compareSearch.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing) return;
+      const first = comparison.querySelector("button[data-atlas-compare]");
+      if (first) selectAtlasComparison(view, first.dataset.atlasCompare);
+    });
+    comparison.querySelector(".atlas-compare-options").addEventListener("click", (event) => {
+      const option = event.target.closest("button[data-atlas-compare]");
+      if (option) selectAtlasComparison(view, option.dataset.atlasCompare);
+    });
     section.querySelector(".atlas-modes").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-atlas-saved]");
       if (!button) return;
@@ -898,6 +936,8 @@ function renderAtlas(view) {
       list.append(reset);
     }
     detail.innerHTML = emptyState("Ingen träff att visa", "Ändra sökningen för att öppna en träff.");
+    delete atlasComparisons[view];
+    renderAtlasComparison(view);
     return;
   }
 
@@ -936,12 +976,133 @@ function renderAtlas(view) {
   });
   list.replaceChildren(...rows);
   detail.innerHTML = config.detail(selected);
+  renderAtlasComparison(view);
+}
+
+function atlasComparisonResults(view, primary, query) {
+  const config = ATLAS[view];
+  const otherCards = DATA[view].filter((item) => item !== primary);
+  if (query) return otherCards.filter((item) => containsSearch(query, config.search(item)));
+  return otherCards.filter((item) => config.group(item) === config.group(primary));
+}
+
+function renderAtlasComparison(view) {
+  const config = ATLAS[view];
+  const section = $(`#${view}`);
+  const primary = atlasEntry(view, atlasSelected[view]);
+  const compareButton = section.querySelector(".atlas-compare-toggle");
+  const comparison = section.querySelector(".atlas-comparison");
+  const state = atlasComparisons[view];
+  const isOpen = Boolean(state && primary);
+  compareButton.hidden = !primary || DATA[view].length < 2;
+  compareButton.setAttribute("aria-expanded", String(isOpen));
+  compareButton.textContent = isOpen ? "Stäng jämförelsen" : "Jämför kort";
+  comparison.hidden = !isOpen;
+  section.classList.toggle("atlas-comparing", isOpen);
+  section.querySelector(".atlas-detail").hidden = isOpen;
+  if (!isOpen) return;
+
+  const search = comparison.querySelector(".atlas-compare-search");
+  const query = normalizeSearch(search.value);
+  let candidates = atlasComparisonResults(view, primary, query);
+  if (!query && !candidates.length) candidates = DATA[view].filter((item) => item !== primary);
+
+  comparison.querySelector(".atlas-compare-primary").textContent = `Första kortet är ${config.title(primary)}.`;
+  const visible = candidates.slice(0, 8);
+  comparison.querySelector(".atlas-compare-count").textContent = query
+    ? (candidates.length > visible.length
+      ? `Visar ${visible.length} av ${candidates.length} träffar. Sök vidare för att begränsa listan.`
+      : `${visible.length} träffar`)
+    : "Förslag från registret";
+
+  const options = visible.map((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost";
+    button.dataset.atlasCompare = config.id(item);
+    button.setAttribute("aria-pressed", String(button.dataset.atlasCompare === state.recordId));
+    button.textContent = config.title(item);
+    return button;
+  });
+  comparison.querySelector(".atlas-compare-options").replaceChildren(...options);
+
+  const second = atlasEntry(view, state.recordId);
+  const tableContainer = comparison.querySelector(".atlas-compare-table");
+  tableContainer.hidden = !second || primary === second;
+  if (!tableContainer.hidden) tableContainer.replaceChildren(buildAtlasComparisonTable(config, primary, second));
+  else tableContainer.replaceChildren();
+}
+
+function buildAtlasComparisonTable(config, primary, second) {
+  const table = document.createElement("table");
+  const caption = table.createCaption();
+  caption.tabIndex = -1;
+  caption.textContent = "Uppgifterna sida vid sida";
+
+  const head = table.createTHead().insertRow();
+  const title = document.createElement("th");
+  title.scope = "col";
+  title.textContent = "Studieområde";
+  head.append(title);
+  for (const item of [primary, second]) {
+    const field = document.createElement("th");
+    field.scope = "col";
+    field.textContent = config.title(item);
+    head.append(field);
+  }
+
+  const values = [primary, second].map((item) => {
+    const template = document.createElement("template");
+    template.innerHTML = config.detail(item);
+    return [
+      ...config.compare(item),
+      ["Säkerhet", template.content.querySelector(".safety").textContent],
+      ["Källa", template.content.querySelector(".source").textContent],
+    ];
+  });
+  const body = table.createTBody();
+  for (const [rowIndex, [label, firstValue]] of values[0].entries()) {
+    const row = body.insertRow();
+    const labelCell = document.createElement("th");
+    labelCell.scope = "row";
+    labelCell.textContent = label;
+    row.append(labelCell);
+    row.insertCell().textContent = firstValue;
+    row.insertCell().textContent = values[1][rowIndex][1];
+  }
+  return table;
+}
+
+function toggleAtlasComparison(view) {
+  const section = $(`#${view}`);
+  if (atlasComparisons[view]) {
+    delete atlasComparisons[view];
+    renderAtlasComparison(view);
+    section.querySelector(".atlas-compare-toggle").focus();
+    return;
+  }
+
+  atlasComparisons[view] = { recordId: null };
+  section.classList.add("atlas-reading");
+  section.querySelector(".atlas-compare-search").value = "";
+  renderAtlasComparison(view);
+  section.querySelector(".atlas-comparison h2").focus();
+}
+
+function selectAtlasComparison(view, targetId) {
+  const compared = atlasComparisons[view];
+  if (!compared || !atlasEntry(view, targetId) || targetId === atlasSelected[view]) return;
+  compared.recordId = targetId;
+  renderAtlasComparison(view);
+  $(`#${view} .atlas-compare-table caption`)?.focus();
 }
 
 function closeAtlasReader(view) {
   const config = ATLAS[view];
   const section = $(`#${view}`);
+  delete atlasComparisons[view];
   section.classList.remove("atlas-reading");
+  renderAtlasComparison(view);
   const selected = section.querySelector(".atlas-results .selected");
   (selected || $(`#${config.prefix}Search`)).focus();
 }
