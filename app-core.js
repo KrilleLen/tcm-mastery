@@ -100,26 +100,71 @@ function renderView(id) {
   if (id === "master") renderMaster();
 }
 
-function go(id, updateHistory = true) {
-  const target = document.getElementById(id) ? id : "home";
+const ATLAS_VIEWS = ["conditions", "points", "herbs", "formulas"];
+let appliedHash;
 
-  $$(".view").forEach((view) => view.classList.toggle("active", view.id === target));
-  $$("nav button").forEach((button) => {
-    const active = button.dataset.v === target;
-    button.classList.toggle("active", active);
-    if (active) button.setAttribute("aria-current", "page");
-    else button.removeAttribute("aria-current");
+function go(id, updateHistory = true, recordId = null) {
+  const requested = document.getElementById(id);
+  const target = requested?.classList.contains("view") ? id : "home";
+  const navTarget = ATLAS_VIEWS.includes(target) ? "atlas" : target;
+  const activeView = document.getElementById(target);
+
+  $$(".view").forEach((view) => view.classList.toggle("active", view === activeView));
+  $$(".site-nav [data-v]").forEach((link) => {
+    const active = link.dataset.v === navTarget;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   });
 
-  if (updateHistory && location.hash !== `#${target}`) {
-    history.pushState({ view: target }, "", `#${target}`);
+  const hash = recordId && ATLAS_VIEWS.includes(target)
+    ? `#${target}/${encodeURIComponent(recordId)}`
+    : `#${target}`;
+  if (updateHistory && location.hash !== hash) {
+    history.pushState({ view: target }, "", hash);
   }
 
-  window.scrollTo({ top: 0, behavior: "auto" });
+  appliedHash = location.hash;
+  window.scrollTo({ top: 0, behavior: "instant" });
   renderView(target);
+  const heading = activeView.querySelector("h1");
+  document.title = target === "home" || !heading
+    ? "Mästaren · TCM-studier"
+    : `${heading.textContent.trim()} · Mästaren`;
+  if (updateHistory && heading) {
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+  }
+  if (ATLAS_VIEWS.includes(target) && typeof restoreAtlasRoute === "function") {
+    restoreAtlasRoute(target, recordId);
+  }
 }
 
-window.addEventListener("popstate", () => go(location.hash.slice(1) || "home", false));
+function routeFromHash() {
+  if (appliedHash === location.hash) return;
+  const [view, ...segments] = location.hash.slice(1).split("/");
+  let recordId = null;
+  if (segments.length) {
+    try {
+      recordId = decodeURIComponent(segments.join("/"));
+    } catch {
+      // A malformed link can still open the corresponding register.
+    }
+  }
+  go(view || "home", false, recordId);
+}
+
+window.addEventListener("popstate", routeFromHash);
+window.addEventListener("hashchange", routeFromHash);
+document.addEventListener("click", (event) => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey ||
+      event.ctrlKey || event.shiftKey || event.altKey) return;
+  const target = link.getAttribute("href").slice(1);
+  if (!document.getElementById(target)?.classList.contains("view")) return;
+  event.preventDefault();
+  go(target);
+});
 
 let deferredInstallPrompt = null;
 
@@ -809,8 +854,7 @@ function speakMaster() {
 
 initChannels();
 syncInstallButton();
-const initialView = location.hash.slice(1) || "home";
-go(initialView, false);
+routeFromHash();
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});

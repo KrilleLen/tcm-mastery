@@ -73,11 +73,19 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .study-information { margin-top: 28px; border-top: 1px solid #d0d8cd; padding: 16px 0; color: var(--muted); }
 .study-information summary { width: fit-content; cursor: pointer; color: var(--text); font-weight: 650; }
 .study-information p { max-width: 78ch; }
-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 7px 5px calc(7px + env(safe-area-inset-bottom)); background: var(--spruce); }
-nav .row { max-width: 850px; margin: auto; display: flex; justify-content: space-around; }
-nav button { display: grid; place-items: center; flex: 1; gap: 2px; min-height: 45px; padding: 5px; color: #d0ded4; background: transparent; border: 0; font-size: .78rem; }
-nav button span { font-size: 1.25rem; }
-nav button.active { color: var(--mint); font-weight: 750; }
+.skip-link { position: fixed; z-index: 100; top: 8px; left: 8px; padding: 10px; border-radius: 8px; background: var(--panel); transform: translateY(-150%); }
+.skip-link:focus { transform: none; }
+.site-nav { margin-bottom: 18px; border-block: 1px solid #d9ddd1; }
+.site-nav .row { display: flex; gap: 6px; }
+.site-nav a {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 49px;
+  padding: 8px 14px; border-bottom: 2px solid transparent; text-decoration: none; color: var(--muted);
+  font-size: .94rem; font-weight: 650;
+}
+.site-nav a:hover, .site-nav a.active { border-bottom-color: var(--jade); color: var(--jade); }
+.site-nav a span { font-size: 1.15rem; line-height: 1; }
+.atlas-directory { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.atlas-directory h2 { margin: 7px 0 0; font-size: 1.85rem; }
 .grid { display: grid; gap: 14px; }
 .cols { grid-template-columns: minmax(230px, 320px) minmax(0, 1fr); align-items: start; }
 .panel, .card { min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); }
@@ -139,6 +147,11 @@ button:disabled { cursor: default; opacity: .65; }
 @media (max-width: 760px) {
   .app { padding: 13px 15px calc(90px + env(safe-area-inset-bottom)); }
   header { margin-bottom: 15px; }
+  .site-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; margin: 0; padding: 4px 5px calc(4px + env(safe-area-inset-bottom)); border: 0; background: var(--spruce); }
+  .site-nav .row { gap: 0; }
+  .site-nav a { display: grid; place-items: center; align-content: center; gap: 4px; flex: 1; min-width: 0; min-height: 51px; padding: 4px 2px; color: #e1eee0; font-size: .77rem; }
+  .site-nav a:hover, .site-nav a.active { color: var(--mint); border-color: var(--mint); }
+  .atlas-directory { grid-template-columns: minmax(0, 1fr); }
   .brand small { display: none; }
   .home-hero { grid-template-columns: minmax(0, 1fr); min-height: 0; border-radius: 18px; }
   .home-hero-copy { padding: 26px 21px 12px; }

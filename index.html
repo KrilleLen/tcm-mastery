@@ -14,9 +14,19 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
+<a href="#main" class="skip-link">Hoppa till innehållet</a>
 <div class="app">
-<header><div class="brand"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren</b><small>Studieapp för akupunktur och TCM</small></div></div><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">＋ App</button></header>
-<main>
+<header class="site-header"><a class="brand" href="#home" aria-label="Mästaren, startsida"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren</b><small>Studieapp för akupunktur och TCM</small></div></a><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">＋ App</button></header>
+<nav class="site-nav" aria-label="Huvudmeny">
+  <div class="row">
+    <a href="#home" data-v="home" aria-current="page"><span aria-hidden="true">⌂</span>Start</a>
+    <a href="#study" data-v="study"><span aria-hidden="true">◫</span>Studiepass</a>
+    <a href="#atlas" data-v="atlas"><span aria-hidden="true">▤</span>Atlas</a>
+    <a href="#case" data-v="case"><span aria-hidden="true">◇</span>Fall</a>
+    <a href="#master" data-v="master"><span aria-hidden="true">◌</span>Muntligt</a>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
 <section id="home" class="view active" aria-labelledby="homeTitle">
   <div class="home-hero">
     <div class="home-hero-copy">
@@ -25,7 +35,7 @@
       <p class="hero-description">Träna på att minnas, jämföra och motivera. Börja med ett kort pass eller slå upp det du behöver.</p>
       <div class="actions">
         <a class="primary" id="homeStudyAction" href="#study">Starta ett studiepass</a>
-        <a class="ghost" id="homeAtlasAction" href="#conditions">Öppna atlasen</a>
+        <a class="ghost" id="homeAtlasAction" href="#atlas">Öppna atlasen</a>
       </div>
     </div>
     <aside class="home-hero-aside" aria-label="Ditt studieläge">
@@ -78,6 +88,34 @@
     <p>Öva i ordningen säkerhet, symtom, frågor, mönster, mekanism, princip, val av verktyg och uppföljning.</p>
   </details>
 </section>
+<section id="atlas" class="view" aria-labelledby="atlasTitle">
+  <div class="title">
+    <h1 id="atlasTitle">Studieatlas</h1>
+    <p>Välj ett register för att söka, läsa och jämföra innehållet från kurslitteraturen.</p>
+  </div>
+  <div class="atlas-directory">
+    <a class="path-card" href="#conditions">
+      <span class="eyebrow">Maciocia</span><h2>Kliniska kapitel</h2>
+      <p>Slå upp huvudbesvär och jämför mönster utifrån kapitelindelningen.</p>
+      <span class="path-action">Öppna 48 kapitel</span>
+    </a>
+    <a class="path-card" href="#points">
+      <span class="eyebrow">Seirin och standardnomenklatur</span><h2>Akupunkturpunkter</h2>
+      <p>Sök på punktkod, namn eller meridian.</p>
+      <span class="path-action">Öppna 361 punktkoder</span>
+    </a>
+    <a class="path-card" href="#herbs">
+      <span class="eyebrow">Materia Medica</span><h2>Örtkort</h2>
+      <p>Studera kategorier, mönster och säkerhetsfrågor.</p>
+      <span class="path-action">Öppna 102 örtkort</span>
+    </a>
+    <a class="path-card" href="#formulas">
+      <span class="eyebrow">Formulas</span><h2>Formler</h2>
+      <p>Studera kategorier och hur innehållet hänger ihop.</p>
+      <span class="path-action">Öppna 58 formler</span>
+    </a>
+  </div>
+</section>
 <section id="conditions" class="view"><div class="title"><span class="eyebrow">The Practice of Chinese Medicine</span><h1>48 kliniska kapitel</h1><p>Kapitelhänvisningar följer andra upplagans struktur. Innehållet är en pedagogisk studiekarta, inte en kopia av boktexten.</p></div><div class="grid cols"><div class="panel list"><input id="conditionSearch" class="search" aria-label="Sök kliniska kapitel" placeholder="Sök tillstånd eller mönster…" oninput="renderConditions()"><div id="conditionList"></div></div><div id="conditionDetail" class="panel detail" aria-live="polite"></div></div></section>
 <section id="points" class="view"><div class="title"><span class="eyebrow">Seirin + standardnomenklatur</span><h1>361 klassiska punkter</h1><p>Sök per kod, namn och meridian. Punktlokalisering och nålteknik ska alltid verifieras i den fysiska atlasen och praktisk handledning.</p></div><div class="grid cols"><div class="panel list"><input id="pointSearch" class="search" aria-label="Sök akupunkturpunkter" placeholder="Sök LI4, Hegu, Magsäck…" oninput="renderPoints()"><div class="filters" id="channelFilters" aria-label="Filtrera efter meridian"></div><div id="pointList"></div></div><div id="pointDetail" class="panel detail" aria-live="polite"></div></div></section>
 <section id="herbs" class="view"><div class="title"><span class="eyebrow">Chinese Herbal Medicine: Materia Medica</span><h1>102 centrala örter</h1><p>Fokus ligger på kategori, mönsterlogik, säkerhet och jämförelse. Exakta doser är medvetet låsta tills de verifierats i hennes upplaga.</p></div><div class="grid cols"><div class="panel list"><input id="herbSearch" class="search" aria-label="Sök örter" placeholder="Sök ört, kategori eller mönster…" oninput="renderHerbs()"><div id="herbList"></div></div><div id="herbDetail" class="panel detail" aria-live="polite"></div></div></section>
@@ -87,5 +125,4 @@
 <section id="master" class="view"><div class="title"><span class="eyebrow">Muntligt mästarförhör</span><h1>Försvara ditt resonemang</h1><p>Appen väljer en fråga och kräver fynd för, fynd emot och vad som skulle ändra hypotesen.</p></div><div class="panel master"><span class="badge gold">Mästarfråga</span><q id="masterQ"></q><textarea id="masterText" aria-label="Ditt svar på mästarfrågan" placeholder="Svara högt eller skriv ditt försvar…"></textarea><div class="actions"><button type="button" class="ghost" onclick="speakMaster()">🔊 Läs upp</button><button type="button" class="primary" onclick="nextMaster()">Nästa följdfråga</button></div><div id="masterHint" class="answer"></div></div><div class="title"><span class="eyebrow">Täckning</span><h1>Vad appen faktiskt innehåller</h1></div><div class="coverage"><div class="card"><small>Maciocia</small><b>48/48</b><span>kapitelindex och träningsstruktur</span></div><div class="card"><small>Punktregister</small><b>361/361</b><span>klassiska koder, meridianer</span></div><div class="card"><small>Materia Medica</small><b>102</b><span>centrala studiekort</span></div><div class="card"><small>Formler</small><b>58</b><span>klassiska strukturkort</span></div></div></section>
 </main></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<nav aria-label="Huvudmeny"><div class="row"><button type="button" class="active" data-v="home" onclick="go('home')"><span aria-hidden="true">⌂</span>Start</button><button type="button" data-v="conditions" onclick="go('conditions')"><span aria-hidden="true">診</span>Kapitel</button><button type="button" data-v="points" onclick="go('points')"><span aria-hidden="true">◎</span>Punkter</button><button type="button" data-v="herbs" onclick="go('herbs')"><span aria-hidden="true">葉</span>Örter</button><button type="button" data-v="formulas" onclick="go('formulas')"><span aria-hidden="true">方</span>Formler</button><button type="button" data-v="case" onclick="go('case')"><span aria-hidden="true">✦</span>Fall</button><button type="button" data-v="master" onclick="go('master')"><span aria-hidden="true">冠</span>Mästare</button></div></nav>
 <script src="conditions.js"></script><script src="points.js"></script><script src="herbs.js"></script><script src="formulas.js"></script><script src="app-core.js"></script></body></html>
