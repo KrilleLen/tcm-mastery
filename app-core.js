@@ -741,41 +741,67 @@ function allCards() {
 
 const CARDS = allCards();
 let currentCard = null;
+let studyTopic = "all";
 let studyFirst = true;
 let studyHintUsed = false;
 let studyStartedAt = 0;
 
-function chooseStudyCard() {
-  const now = Date.now();
-  const due = CARDS.filter((card) => finiteNumber(state.cards[card.id]?.due) <= now);
-  let pool = due.length
-    ? due
-    : [...CARDS]
-        .sort(
-          (a, b) =>
-            finiteNumber(state.cards[a.id]?.due, Infinity) -
-            finiteNumber(state.cards[b.id]?.due, Infinity),
-        )
-        .slice(0, 20);
+function studyCardsFor(topic) {
+  return topic === "all" ? CARDS : CARDS.filter((card) => card.id.startsWith(topic + ":"));
+}
 
-  if (pool.length > 1 && currentCard) {
-    pool = pool.filter((card) => card.id !== currentCard.id);
+function studyQueues(cards) {
+  const now = Date.now();
+  const fresh = [];
+  const due = [];
+  const later = [];
+
+  for (const card of cards) {
+    const review = state.cards[card.id];
+    if (!finiteNumber(review?.reviews)) fresh.push(card);
+    else if (finiteNumber(review.due) <= now) due.push(card);
+    else later.push(card);
   }
 
-  return pool[Math.floor(Math.random() * pool.length)] || CARDS[0] || null;
+  const byDue = (left, right) =>
+    finiteNumber(state.cards[left.id]?.due) - finiteNumber(state.cards[right.id]?.due);
+  return { fresh, due: due.sort(byDue), later: later.sort(byDue) };
+}
+
+function chooseStudyCard() {
+  const { due, fresh, later } = studyQueues(studyCardsFor(studyTopic));
+  const avoidingCurrent = (cards) => cards.filter((card) => card.id !== currentCard?.id);
+  const nextFresh = avoidingCurrent(fresh);
+  return (
+    avoidingCurrent(due)[0] ??
+    nextFresh[Math.floor(Math.random() * nextFresh.length)] ??
+    avoidingCurrent(later)[0] ??
+    due[0] ??
+    fresh[0] ??
+    later[0] ??
+    null
+  );
+}
+
+function studyOverview() {
+  const { due, fresh } = studyQueues(CARDS);
+  return { started: CARDS.length - fresh.length, due: due.length };
 }
 
 function updateStudyMeta() {
-  const meta = $("#studyMeta");
-  if (!meta) return;
-
-  const now = Date.now();
-  const started = Object.keys(state.cards).filter((id) => state.cards[id]?.reviews).length;
-  const due = CARDS.filter(
-    (card) => state.cards[card.id]?.reviews && finiteNumber(state.cards[card.id]?.due) <= now,
-  ).length;
-  meta.textContent = `${started} av ${CARDS.length} kort påbörjade · ${due} repetition${due === 1 ? "" : "er"} redo · ${state.casesCompleted} fall slutförda`;
+  const { started, due } = studyOverview();
+  $("#studyMeta").textContent =
+    `Påbörjat ${started} av ${CARDS.length} kort · ${due} att repetera i dag`;
+  const selected = studyQueues(studyCardsFor(studyTopic));
+  $("#studyQueueInfo").textContent = selected.due.length
+    ? `${selected.due.length} kort redo att repetera. De kommer först.`
+    : `${selected.fresh.length} nya kort i ämnet.`;
 }
+
+$("#studyTopic").addEventListener("change", (event) => {
+  studyTopic = event.target.value;
+  newStudy();
+});
 
 function newStudy() {
   currentCard = chooseStudyCard();

@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Mästaren · TCM-studier</title>
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="tcm-study.css">
 </head>
 <body>
 <a href="#main" class="skip-link">Hoppa till innehållet</a>
@@ -173,7 +174,43 @@
 <section id="points" class="view"><div class="title"><span class="eyebrow">Seirin + standardnomenklatur</span><h1>361 klassiska punkter</h1><p>Sök per kod, namn och meridian. Punktlokalisering och nålteknik ska alltid verifieras i den fysiska atlasen och praktisk handledning.</p></div><div class="grid cols"><div class="panel list"><input id="pointSearch" class="search" aria-label="Sök akupunkturpunkter" placeholder="Sök LI4, Hegu, Magsäck…" oninput="renderPoints()"><div class="filters" id="channelFilters" aria-label="Filtrera efter meridian"></div><div id="pointList"></div></div><div id="pointDetail" class="panel detail" aria-live="polite"></div></div></section>
 <section id="herbs" class="view"><div class="title"><span class="eyebrow">Chinese Herbal Medicine: Materia Medica</span><h1>102 centrala örter</h1><p>Fokus ligger på kategori, mönsterlogik, säkerhet och jämförelse. Exakta doser är medvetet låsta tills de verifierats i hennes upplaga.</p></div><div class="grid cols"><div class="panel list"><input id="herbSearch" class="search" aria-label="Sök örter" placeholder="Sök ört, kategori eller mönster…" oninput="renderHerbs()"><div id="herbList"></div></div><div id="herbDetail" class="panel detail" aria-live="polite"></div></div></section>
 <section id="formulas" class="view"><div class="title"><span class="eyebrow">Chinese Herbal Formulas and Applications</span><h1>58 klassiska formelstrukturer</h1><p>Analysera kategori, bakomliggande mönster och ingredienslogik. Appen godkänner aldrig en modifiering automatiskt.</p></div><div class="grid cols"><div class="panel list"><input id="formulaSearch" class="search" aria-label="Sök formler" placeholder="Sök formel, kategori, mönster eller ört…" oninput="renderFormulas()"><div id="formulaList"></div></div><div id="formulaDetail" class="panel detail" aria-live="polite"></div></div></section>
-<section id="study" class="view"><div class="title"><span class="eyebrow">Spaced repetition + muntligt försvar</span><h1>Dagens mästarpass</h1><p>Första svaret, ledtrådar och självsäkerhet räknas. Kortet kan hämtas från alla fyra bibliotek.</p><p id="studyMeta" class="study-meta" aria-live="polite"></p></div><div class="panel study-card"><div><span id="studyBadge" class="badge"></span><h2 id="studyQ">Dagens fråga</h2><textarea id="studyText" aria-label="Ditt svar" placeholder="Formulera svaret i egna ord innan facit…"></textarea><div id="studyA" class="answer hidden" aria-live="polite"></div></div><div><div class="actions"><button type="button" class="ghost" onclick="speakQuestion()">🔊 Läs upp</button><button type="button" class="ghost" onclick="showStudyAnswer()">Visa vägledning</button></div><div class="actions"><button type="button" class="ghost" onclick="grade(0)">Behöver träna</button><button type="button" class="ghost" onclick="grade(1)">Osäker</button><button type="button" class="primary" onclick="grade(2)">Kan förklara</button></div></div></div></section>
+<section id="study" class="view">
+  <div class="title study-title">
+    <h1>Studiepass</h1>
+    <p>Träna på ett ämne i taget eller varva frågor från alla fyra register.</p>
+    <p id="studyMeta" class="study-meta" aria-live="polite"></p>
+  </div>
+  <div class="panel study-settings">
+    <label for="studyTopic">Vad vill du träna på?</label>
+    <select id="studyTopic">
+      <option value="all">Alla ämnen</option>
+      <option value="condition">Kliniska kapitel</option>
+      <option value="point">Akupunkturpunkter</option>
+      <option value="herb">Örter</option>
+      <option value="formula">Formler</option>
+    </select>
+    <p id="studyQueueInfo"></p>
+  </div>
+  <div class="panel study-card">
+    <div>
+      <span id="studyBadge" class="badge"></span>
+      <h2 id="studyQ">Dagens fråga</h2>
+      <textarea id="studyText" aria-label="Ditt svar" placeholder="Formulera svaret i egna ord innan facit…"></textarea>
+      <div id="studyA" class="answer hidden" aria-live="polite"></div>
+    </div>
+    <div>
+      <div class="actions">
+        <button type="button" class="ghost" onclick="speakQuestion()">Läs upp frågan</button>
+        <button type="button" class="ghost" onclick="showStudyAnswer()">Visa vägledning</button>
+      </div>
+      <div class="actions">
+        <button type="button" class="ghost" onclick="grade(0)">Behöver träna</button>
+        <button type="button" class="ghost" onclick="grade(1)">Osäker</button>
+        <button type="button" class="primary" onclick="grade(2)">Kan förklara</button>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="case" class="view"><div class="title"><span class="eyebrow">Patientfall</span><h1 id="caseTitle">Kliniskt resonemang under kontroll</h1><p>Arbeta stegvis. Behandlingsval är låst tills säkerhet, mönster, mekanism och princip är formulerade.</p></div><div class="panel casebox"><div id="caseSteps" class="steps"></div><div id="caseContent"></div></div></section>
 <section id="master" class="view"><div class="title"><span class="eyebrow">Muntligt mästarförhör</span><h1>Försvara ditt resonemang</h1><p>Appen väljer en fråga och kräver fynd för, fynd emot och vad som skulle ändra hypotesen.</p></div><div class="panel master"><span class="badge gold">Mästarfråga</span><q id="masterQ"></q><textarea id="masterText" aria-label="Ditt svar på mästarfrågan" placeholder="Svara högt eller skriv ditt försvar…"></textarea><div class="actions"><button type="button" class="ghost" onclick="speakMaster()">🔊 Läs upp</button><button type="button" class="primary" onclick="nextMaster()">Nästa följdfråga</button></div><div id="masterHint" class="answer"></div></div><div class="title"><span class="eyebrow">Täckning</span><h1>Vad appen faktiskt innehåller</h1></div><div class="coverage"><div class="card"><small>Maciocia</small><b>48/48</b><span>kapitelindex och träningsstruktur</span></div><div class="card"><small>Punktregister</small><b>361/361</b><span>klassiska koder, meridianer</span></div><div class="card"><small>Materia Medica</small><b>102</b><span>centrala studiekort</span></div><div class="card"><small>Formler</small><b>58</b><span>klassiska strukturkort</span></div></div></section>
 </main></div>
