@@ -639,180 +639,181 @@ function setupOfflineApp() {
   });
 }
 
-let selectedCondition = 0;
+const ATLAS = {
+  conditions: {
+    prefix: "condition",
+    id: (item) => String(item.chapter),
+    title: (item) => `Kapitel ${item.chapter} · ${item.title}`,
+    subtitle: (item) => `${item.english} · ${item.patterns.slice(0, 2).join(" / ")}`,
+    search: (item) => [item.title, item.english, item.patterns, `kapitel ${item.chapter}`],
+    detail: conditionAtlasDetail,
+    noResults: ["Inga kapitel hittades", "Prova ett annat ord eller mönsternamn."],
+  },
+  points: {
+    prefix: "point",
+    id: (item) => item.id,
+    title: (item) => item.id + (item.name ? ` · ${item.name}` : ""),
+    subtitle: (item) => item.channel,
+    search: (item) => [item.id, item.name, item.channel],
+    detail: pointAtlasDetail,
+    noResults: ["Inga punkter hittades", "Kontrollera punktkod, namn eller meridian."],
+  },
+  herbs: {
+    prefix: "herb",
+    id: (item) => item.pinyin,
+    title: (item) => item.pinyin,
+    subtitle: (item) => `${item.category} · ${item.pattern}`,
+    search: (item) => [item.pinyin, item.category, item.pattern, item.functions],
+    detail: herbAtlasDetail,
+    noResults: ["Inga örter hittades", "Prova namn, kategori, funktion eller mönster."],
+  },
+  formulas: {
+    prefix: "formula",
+    id: (item) => item.name,
+    title: (item) => item.name,
+    subtitle: (item) => `${item.category} · ${item.pattern}`,
+    search: (item) => [item.name, item.category, item.pattern, item.ingredients],
+    detail: formulaAtlasDetail,
+    noResults: ["Inga formler hittades", "Prova formelnamn, kategori, mönster eller ört."],
+  },
+};
 
-function filteredConditions() {
-  const query = normalizeSearch($("#conditionSearch")?.value);
-  return DATA.conditions.filter((item) =>
-    containsSearch(query, item.title, item.english, item.patterns),
-  );
-}
-
-function renderConditions() {
-  const list = $("#conditionList");
-  const detail = $("#conditionDetail");
-  if (!list || !detail) return;
-
-  const matches = filteredConditions();
-  if (!matches.length) {
-    list.innerHTML = emptyState("Inga kapitel hittades", "Prova ett annat ord eller mönsternamn.");
-    detail.innerHTML = emptyState("Ingen träff att visa", "Ändra sökningen för att öppna ett kapitel.");
-    return;
-  }
-
-  if (!matches.some((item) => item.chapter - 1 === selectedCondition)) {
-    selectedCondition = matches[0].chapter - 1;
-  }
-
-  list.innerHTML = matches
-    .map(
-      (item) =>
-        `<button type="button" class="item ${item.chapter - 1 === selectedCondition ? "selected" : ""}" onclick="selectCondition(${item.chapter - 1})"><b>Kapitel ${item.chapter} · ${item.title}</b><small>${item.english} · ${item.patterns.slice(0, 2).join(" / ")}</small></button>`,
-    )
-    .join("");
-  renderConditionDetail();
-}
-
-function selectCondition(index) {
-  selectedCondition = index;
-  renderConditions();
-}
-
-function renderConditionDetail() {
-  const detail = $("#conditionDetail");
-  const item = DATA.conditions[selectedCondition];
-  if (!detail || !item) return;
-
-  detail.innerHTML = `<span class="badge">Kapitel ${item.chapter}</span><h2>${item.title}</h2><p class="muted">${item.english}</p><h3>Mönster att differentiera</h3><div class="chips">${item.patterns.map((pattern) => `<span class="chip">${pattern}</span>`).join("")}</div><div class="facts"><div class="fact"><small>Frågor med hög informationsvinst</small>• Debut och tidsförlopp<br>• Förvärrande och lindrande faktorer<br>• Energi, sömn och aptit<br>• Avföring, urin och törst<br>• Smärtans plats och karaktär<br>• Läkemedel, graviditet och rödflaggor</div><div class="fact"><small>Obligatorisk arbetsgång</small>1. Säkerhet och biomedicinsk differential<br>2. Samla huvud- och följdsymtom<br>3. Bedöm tunga och puls i sitt sammanhang<br>4. Väg fynd för och emot varje mönster<br>5. Formulera mekanism<br>6. Formulera behandlingsprincip<br>7. Välj verktyg och följ upp</div><div class="fact"><small>Tunga och puls</small>Dokumentera observationen först. Tolka först därefter och ange vad som talar emot din hypotes.</div><div class="fact"><small>Uppföljning</small>Förändring, tolerans, nya rödflaggor, om hypotesen håller och när behandlingen ska avslutas eller omvärderas.</div></div><div class="safety">Säkerhet före TCM: uteslut akuta eller allvarliga orsaker, kontrollera läkemedel, graviditet, ålder, dehydrering, blödning och andra relevanta rödflaggor.</div><p class="source">Maciocia, The Practice of Chinese Medicine, kapitel ${item.chapter} · Pedagogisk syntes, inte ordagrann boktext.</p>`;
-}
-
+const atlasSelected = {};
 let channel = "Alla";
-let selectedPointId = DATA.points[0]?.id || null;
+
+function atlasEntry(view, recordId) {
+  const config = ATLAS[view];
+  return config && DATA[view].find((item) => config.id(item) === String(recordId));
+}
+
+function renderConditions() { renderAtlas("conditions"); }
+function renderPoints() { renderAtlas("points"); }
+function renderHerbs() { renderAtlas("herbs"); }
+function renderFormulas() { renderAtlas("formulas"); }
 
 function initChannels() {
-  renderChannelFilters();
+  const filters = $("#channelFilters");
+  const channels = ["Alla", ...new Set(DATA.points.map((item) => item.channel))];
+  for (const name of channels) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = name;
+    button.dataset.channel = name;
+    button.addEventListener("click", () => setChannel(name));
+    filters.append(button);
+  }
+  updateChannelFilters();
+
+  for (const [view, config] of Object.entries(ATLAS)) {
+    const list = $(`#${config.prefix}List`);
+    list.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-atlas-id]");
+      if (button) selectAtlasEntry(view, button.dataset.atlasId);
+    });
+    $(`#${view} .atlas-back`).addEventListener("click", () => closeAtlasReader(view));
+  }
 }
 
-function renderChannelFilters() {
-  const filters = $("#channelFilters");
-  if (!filters) return;
-
-  const channels = ["Alla", ...new Set(DATA.points.map((item) => item.channel))];
-  filters.innerHTML = channels
-    .map(
-      (item) =>
-        `<button type="button" class="${item === channel ? "active" : ""}" aria-pressed="${item === channel}" data-channel="${item}">${item}</button>`,
-    )
-    .join("");
-  filters.querySelectorAll("button").forEach((button) => {
-    button.addEventListener("click", () => setChannel(button.dataset.channel));
+function updateChannelFilters() {
+  $$("#channelFilters button").forEach((button) => {
+    const selected = button.dataset.channel === channel;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-pressed", String(selected));
   });
 }
 
 function setChannel(value) {
   channel = value;
-  renderChannelFilters();
+  updateChannelFilters();
   renderPoints();
 }
 
-function filteredPoints() {
-  const query = normalizeSearch($("#pointSearch")?.value);
-  return DATA.points.filter(
-    (item) =>
-      (channel === "Alla" || item.channel === channel) &&
-      containsSearch(query, item.id, item.name, item.channel),
+function renderAtlas(view) {
+  const config = ATLAS[view];
+  const list = $(`#${config.prefix}List`);
+  const detail = $(`#${config.prefix}Detail`);
+  const input = $(`#${config.prefix}Search`);
+  const query = normalizeSearch(input.value);
+  const matches = DATA[view].filter((item) =>
+    (view !== "points" || channel === "Alla" || item.channel === channel) &&
+    containsSearch(query, config.search(item)),
   );
-}
 
-function renderPoints() {
-  const list = $("#pointList");
-  const detail = $("#pointDetail");
-  if (!list || !detail) return;
-
-  const matches = filteredPoints();
   if (!matches.length) {
-    list.innerHTML = emptyState("Inga punkter hittades", "Kontrollera punktkod, namn eller meridian.");
-    detail.innerHTML = emptyState("Ingen träff att visa", "Ändra sökningen eller välj en annan meridian.");
+    atlasSelected[view] = null;
+    $(`#${view}`).classList.remove("atlas-reading");
+    list.innerHTML = emptyState(...config.noResults);
+    detail.innerHTML = emptyState("Ingen träff att visa", "Ändra sökningen för att öppna en träff.");
     return;
   }
 
-  if (!matches.some((item) => item.id === selectedPointId)) {
-    selectedPointId = matches[0].id;
+  const selected = matches.find((item) => config.id(item) === atlasSelected[view]) || matches[0];
+  atlasSelected[view] = config.id(selected);
+  const visible = view === "points" ? matches.slice(0, 120) : matches;
+  const rows = visible.map((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "item";
+    button.dataset.atlasId = config.id(item);
+    button.setAttribute("aria-controls", detail.id);
+    if (item === selected) {
+      button.classList.add("selected");
+      button.setAttribute("aria-current", "true");
+    }
+
+    const title = document.createElement("b");
+    title.textContent = config.title(item);
+    const subtitle = document.createElement("small");
+    subtitle.textContent = config.subtitle(item);
+    button.append(title, subtitle);
+    return button;
+  });
+  list.replaceChildren(...rows);
+  if (visible.length < matches.length) {
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = `Visar ${visible.length} av ${matches.length}. Sök mer specifikt.`;
+    list.append(note);
   }
 
-  const visible = matches.slice(0, 120);
-  list.innerHTML =
-    visible
-      .map(
-        (item) =>
-          `<button type="button" class="item ${item.id === selectedPointId ? "selected" : ""}" onclick="selectPoint('${item.id}')"><b>${item.id}${item.name ? ` · ${item.name}` : ""}</b><small>${item.channel}</small></button>`,
-      )
-      .join("") +
-    (matches.length > visible.length
-      ? `<p class="muted">Visar ${visible.length} av ${matches.length}. Sök mer specifikt.</p>`
-      : "");
-  renderPointDetail();
+  detail.innerHTML = config.detail(selected);
 }
 
-function selectPoint(id) {
-  selectedPointId = id;
-  renderPoints();
+function closeAtlasReader(view) {
+  const config = ATLAS[view];
+  const section = $(`#${view}`);
+  section.classList.remove("atlas-reading");
+  const selected = section.querySelector(".atlas-results .selected");
+  (selected || $(`#${config.prefix}Search`)).focus();
 }
 
-function renderPointDetail() {
-  const detail = $("#pointDetail");
-  const item = DATA.points.find((point) => point.id === selectedPointId);
-  if (!detail || !item) return;
+function selectAtlasEntry(view, recordId) {
+  if (!atlasEntry(view, recordId)) return false;
+  atlasSelected[view] = recordId;
+  const section = $(`#${view}`);
+  section.classList.add("atlas-reading");
+  renderAtlas(view);
 
-  detail.innerHTML = `<span class="badge">Seirin: ${item.channel}-meridianen</span><h2>${item.id}${item.name ? ` · ${item.name}` : ""}</h2><p class="muted">${item.channel}</p><div class="facts"><div class="fact"><small>Studieuppgift</small>Lär punktens namn, anatomiska region, palpationslandmärke, traditionella funktioner, närliggande riskstrukturer och vanliga förväxlingspunkter.</div><div class="fact"><small>Självtest</small>Kan du ange region, landmärke, närliggande punkt och en viktig säkerhetsrisk utan att titta?</div><div class="fact"><small>Jämför</small>Identifiera föregående och nästa punkt på meridianen samt en punkt från annan meridian i samma anatomiska region.</div><div class="fact"><small>Kapitelhänvisning</small>Seirin: ${item.channel}-meridianen</div></div><div class="safety">Nålriktning och djup ska verifieras i atlas och med handledare; appen ger inte invasiva instruktioner.</div><p class="source">Punktkodsystem: WHO:s standardnomenklatur för 361 klassiska punkter. Anatomisk detalj: verifiera i Seirins punktatlas.</p>`;
-}
-
-let selectedHerb = 0;
-
-function filteredHerbs() {
-  const query = normalizeSearch($("#herbSearch")?.value);
-  return DATA.herbs
-    .map((item, index) => ({ ...item, index }))
-    .filter((item) =>
-      containsSearch(query, item.pinyin, item.category, item.pattern, item.functions),
-    );
-}
-
-function renderHerbs() {
-  const list = $("#herbList");
-  const detail = $("#herbDetail");
-  if (!list || !detail) return;
-
-  const matches = filteredHerbs();
-  if (!matches.length) {
-    list.innerHTML = emptyState("Inga örter hittades", "Prova namn, kategori, funktion eller mönster.");
-    detail.innerHTML = emptyState("Ingen träff att visa", "Ändra sökningen för att öppna ett örtkort.");
-    return;
+  const heading = section.querySelector(".atlas-detail h2");
+  if (heading) {
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+    if (window.matchMedia?.("(max-width: 760px)").matches) {
+      section.querySelector(".atlas-reader").scrollIntoView({ block: "start" });
+    }
   }
-
-  if (!matches.some((item) => item.index === selectedHerb)) {
-    selectedHerb = matches[0].index;
-  }
-
-  list.innerHTML = matches
-    .map(
-      (item) =>
-        `<button type="button" class="item ${item.index === selectedHerb ? "selected" : ""}" onclick="selectHerb(${item.index})"><b>${item.pinyin}</b><small>${item.category} · ${item.pattern}</small></button>`,
-    )
-    .join("");
-  renderHerbDetail();
+  return true;
 }
 
-function selectHerb(index) {
-  selectedHerb = index;
-  renderHerbs();
+function conditionAtlasDetail(item) {
+  return `<span class="badge">Kapitel ${item.chapter}</span><h2>${item.title}</h2><p class="muted">${item.english}</p><h3>Mönster att differentiera</h3><div class="chips">${item.patterns.map((pattern) => `<span class="chip">${pattern}</span>`).join("")}</div><div class="facts"><div class="fact"><small>Frågor med hög informationsvinst</small>• Debut och tidsförlopp<br>• Förvärrande och lindrande faktorer<br>• Energi, sömn och aptit<br>• Avföring, urin och törst<br>• Smärtans plats och karaktär<br>• Läkemedel, graviditet och rödflaggor</div><div class="fact"><small>Obligatorisk arbetsgång</small>1. Säkerhet och biomedicinsk differential<br>2. Samla huvud- och följdsymtom<br>3. Bedöm tunga och puls i sitt sammanhang<br>4. Väg fynd för och emot varje mönster<br>5. Formulera mekanism<br>6. Formulera behandlingsprincip<br>7. Välj verktyg och följ upp</div><div class="fact"><small>Tunga och puls</small>Dokumentera observationen först. Tolka först därefter och ange vad som talar emot din hypotes.</div><div class="fact"><small>Uppföljning</small>Förändring, tolerans, nya rödflaggor, om hypotesen håller och när behandlingen ska avslutas eller omvärderas.</div></div><div class="safety">Säkerhet före TCM: uteslut akuta eller allvarliga orsaker, kontrollera läkemedel, graviditet, ålder, dehydrering, blödning och andra relevanta rödflaggor.</div><p class="source">Maciocia, The Practice of Chinese Medicine, kapitel ${item.chapter} · Pedagogisk syntes, inte ordagrann boktext.</p>`;
 }
 
-function renderHerbDetail() {
-  const detail = $("#herbDetail");
-  const item = DATA.herbs[selectedHerb];
-  if (!detail || !item) return;
+function pointAtlasDetail(item) {
+  return `<span class="badge">Seirin: ${item.channel}-meridianen</span><h2>${item.id}${item.name ? ` · ${item.name}` : ""}</h2><p class="muted">${item.channel}</p><div class="facts"><div class="fact"><small>Studieuppgift</small>Lär punktens namn, anatomiska region, palpationslandmärke, traditionella funktioner, närliggande riskstrukturer och vanliga förväxlingspunkter.</div><div class="fact"><small>Självtest</small>Kan du ange region, landmärke, närliggande punkt och en viktig säkerhetsrisk utan att titta?</div><div class="fact"><small>Jämför</small>Identifiera föregående och nästa punkt på meridianen samt en punkt från annan meridian i samma anatomiska region.</div><div class="fact"><small>Kapitelhänvisning</small>Seirin: ${item.channel}-meridianen</div></div><div class="safety">Nålriktning och djup ska verifieras i atlas och med handledare; appen ger inte invasiva instruktioner.</div><p class="source">Punktkodsystem: WHO:s standardnomenklatur för 361 klassiska punkter. Anatomisk detalj: verifiera i Seirins punktatlas.</p>`;
+}
 
+function herbAtlasDetail(item) {
   const categoryRoot = item.category.split(",")[0];
   const similar = DATA.herbs
     .filter(
@@ -820,56 +821,11 @@ function renderHerbDetail() {
     )
     .slice(0, 4);
 
-  detail.innerHTML = `<span class="badge gold">${item.category}</span><h2>${item.pinyin}</h2><div class="facts"><div class="fact"><small>Mönsterlogik</small>${item.pattern}</div><div class="fact"><small>Funktionsområden</small>${item.functions}</div><div class="fact"><small>Jämför med</small>${similar.map((herb) => herb.pinyin).join(", ") || "Sök inom samma kategori"}</div><div class="fact"><small>Dosering</small>Verifiera i fysisk bok; visas inte utan källkontroll</div></div><h3>Mästarfrågor</h3><div class="chips"><span class="chip">När väljs den?</span><span class="chip">När väljs den inte?</span><span class="chip">Vilken liknande ört är alternativ?</span><span class="chip">Hur påverkar beredningen?</span></div><div class="safety"><b>Säkerhet:</b> ${item.safety}. Kontrollera alltid läkemedel, graviditet, lever/njurfunktion, allergi, produktkvalitet och artidentitet.</div><p class="source">Materia Medica: kapitel enligt kategori · Pedagogisk översikt.</p>`;
+  return `<span class="badge gold">${item.category}</span><h2>${item.pinyin}</h2><div class="facts"><div class="fact"><small>Mönsterlogik</small>${item.pattern}</div><div class="fact"><small>Funktionsområden</small>${item.functions}</div><div class="fact"><small>Jämför med</small>${similar.map((herb) => herb.pinyin).join(", ") || "Sök inom samma kategori"}</div><div class="fact"><small>Dosering</small>Verifiera i fysisk bok; visas inte utan källkontroll</div></div><h3>Mästarfrågor</h3><div class="chips"><span class="chip">När väljs den?</span><span class="chip">När väljs den inte?</span><span class="chip">Vilken liknande ört är alternativ?</span><span class="chip">Hur påverkar beredningen?</span></div><div class="safety"><b>Säkerhet:</b> ${item.safety}. Kontrollera alltid läkemedel, graviditet, lever/njurfunktion, allergi, produktkvalitet och artidentitet.</div><p class="source">Materia Medica: kapitel enligt kategori · Pedagogisk översikt.</p>`;
 }
 
-let selectedFormula = 0;
-
-function filteredFormulas() {
-  const query = normalizeSearch($("#formulaSearch")?.value);
-  return DATA.formulas
-    .map((item, index) => ({ ...item, index }))
-    .filter((item) =>
-      containsSearch(query, item.name, item.category, item.pattern, item.ingredients),
-    );
-}
-
-function renderFormulas() {
-  const list = $("#formulaList");
-  const detail = $("#formulaDetail");
-  if (!list || !detail) return;
-
-  const matches = filteredFormulas();
-  if (!matches.length) {
-    list.innerHTML = emptyState("Inga formler hittades", "Prova formelnamn, kategori, mönster eller ört.");
-    detail.innerHTML = emptyState("Ingen träff att visa", "Ändra sökningen för att öppna en formel.");
-    return;
-  }
-
-  if (!matches.some((item) => item.index === selectedFormula)) {
-    selectedFormula = matches[0].index;
-  }
-
-  list.innerHTML = matches
-    .map(
-      (item) =>
-        `<button type="button" class="item ${item.index === selectedFormula ? "selected" : ""}" onclick="selectFormula(${item.index})"><b>${item.name}</b><small>${item.category} · ${item.pattern}</small></button>`,
-    )
-    .join("");
-  renderFormulaDetail();
-}
-
-function selectFormula(index) {
-  selectedFormula = index;
-  renderFormulas();
-}
-
-function renderFormulaDetail() {
-  const detail = $("#formulaDetail");
-  const item = DATA.formulas[selectedFormula];
-  if (!detail || !item) return;
-
-  detail.innerHTML = `<span class="badge gold">${item.category}</span><h2>${item.name}</h2><p>${item.pattern}</p><h3>Ingrediensstruktur</h3><div class="chips">${item.ingredients.map((herb, index) => `<span class="chip">${index === 0 ? "Kejsarkandidat: " : ""}${herb}</span>`).join("")}</div><div class="facts"><div class="fact"><small>Analysera roller</small>Identifiera kejsare, minister, assistent och budbärare utifrån formelns behandlingsprincip.</div><div class="fact"><small>Ta bort en ört</small>Förklara vilken del av riktning, balans, säkerhet eller symptomprofil som försvagas.</div><div class="fact"><small>Jämför</small>Hitta en närliggande formel i samma kategori och förklara det avgörande skiljetecknet.</div><div class="fact"><small>Omvärdera</small>Ange fynd som skulle göra att formeln inte längre passar.</div></div><div class="safety">Utbildningspost. Dosförhållanden, substitutioner och klinisk användning måste verifieras i boken och av kvalificerad handledare.</div><p class="source">Chinese Herbal Formulas and Applications: kapitel enligt formelkategori · Ingrediensnamnen är studieöversikt; proportioner verifieras i boken.</p>`;
+function formulaAtlasDetail(item) {
+  return `<span class="badge gold">${item.category}</span><h2>${item.name}</h2><p>${item.pattern}</p><h3>Ingrediensstruktur</h3><div class="chips">${item.ingredients.map((herb, index) => `<span class="chip">${index === 0 ? "Kejsarkandidat: " : ""}${herb}</span>`).join("")}</div><div class="facts"><div class="fact"><small>Analysera roller</small>Identifiera kejsare, minister, assistent och budbärare utifrån formelns behandlingsprincip.</div><div class="fact"><small>Ta bort en ört</small>Förklara vilken del av riktning, balans, säkerhet eller symptomprofil som försvagas.</div><div class="fact"><small>Jämför</small>Hitta en närliggande formel i samma kategori och förklara det avgörande skiljetecknet.</div><div class="fact"><small>Omvärdera</small>Ange fynd som skulle göra att formeln inte längre passar.</div></div><div class="safety">Utbildningspost. Dosförhållanden, substitutioner och klinisk användning måste verifieras i boken och av kvalificerad handledare.</div><p class="source">Chinese Herbal Formulas and Applications: kapitel enligt formelkategori · Ingrediensnamnen är studieöversikt; proportioner verifieras i boken.</p>`;
 }
 
 function allCards() {

@@ -1,0 +1,58 @@
+.atlas .title {
+  max-width: 45rem;
+}
+
+.atlas-list {
+  align-self: start;
+}
+
+.atlas-results .item b {
+  display: block;
+}
+
+.atlas-results .item.selected b {
+  color: var(--jade);
+}
+
+.atlas-reader {
+  min-width: 0;
+  scroll-margin-top: 4.75rem;
+}
+
+.atlas-detail h2:focus {
+  outline: none;
+}
+
+.atlas-back {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .atlas .atlas-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .atlas-reader,
+  .atlas-reading .atlas-list {
+    display: none;
+  }
+
+  .atlas-reading .atlas-reader {
+    display: block;
+  }
+
+  .atlas-back {
+    display: inline-flex;
+    margin-bottom: .75rem;
+  }
+
+  .atlas .atlas-detail {
+    padding: 1.125rem;
+  }
+
+  .atlas .atlas-detail h2 {
+    font-size: clamp(1.65rem, 6vw, 2.25rem);
+    overflow-wrap: anywhere;
+  }
+}
