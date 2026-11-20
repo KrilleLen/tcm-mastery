@@ -35,3 +35,24 @@ test("kortvyn öppnar rätt detalj och återställer fokus i träfflistan", () =
   assert.equal(window.document.activeElement, q(item));
   window.close();
 });
+
+test("sökverktygen visar hela registret, föredrar exakt punktkod och erbjuder återhämtning", () => {
+  const window = openApp("#points");
+  const q = (selector) => window.document.querySelector(selector);
+  const search = q("#pointSearch");
+  assert.equal(window.document.querySelectorAll("#pointList .item").length, 361);
+  assert.equal(q("#pointCount").textContent, "361 av 361 poster");
+  search.value = "LI 1";
+  search.dispatchEvent(new window.Event("input"));
+  assert.equal(q("#pointList .item").dataset.atlasId, "LI1");
+  search.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter" }));
+  assert.match(q("#pointDetail h2").textContent, /LI1\b/);
+  q("#points .atlas-back").click();
+  search.value = "ingen-träff";
+  search.dispatchEvent(new window.Event("input"));
+  assert.equal(q("#pointCount").textContent, "0 av 361 poster");
+  q(".atlas-reset").click();
+  assert.equal(search.value, "");
+  assert.equal(q("#pointCount").textContent, "361 av 361 poster");
+  window.close();
+});

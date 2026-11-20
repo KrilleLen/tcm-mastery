@@ -28,11 +28,6 @@
 }
 
 @media (max-width: 760px) {
-  .atlas .atlas-list {
-    max-height: none;
-    overflow: visible;
-  }
-
   .atlas-reader,
   .atlas-reading .atlas-list {
     display: none;
@@ -54,5 +49,73 @@
   .atlas .atlas-detail h2 {
     font-size: clamp(1.65rem, 6vw, 2.25rem);
     overflow-wrap: anywhere;
+  }
+}
+
+.atlas .atlas-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.atlas-search-row,
+.atlas-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.atlas-search-row {
+  flex-wrap: nowrap;
+}
+
+.atlas-search-row .search {
+  margin: 0;
+  min-width: 0;
+}
+
+.atlas-suggestions {
+  margin: .65rem 0;
+}
+
+.atlas-suggestions[hidden],
+.atlas-clear[hidden] {
+  display: none;
+}
+
+.atlas-suggestions button {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: .35rem .7rem;
+  background: transparent;
+  color: var(--jade);
+  font-size: .875rem;
+}
+
+.atlas-tools .filters {
+  margin: .65rem 0 0;
+}
+
+.atlas-count {
+  color: var(--muted);
+  font-size: .875rem;
+  margin: .7rem 0 .3rem;
+}
+
+.atlas-results {
+  max-height: min(53vh, 32rem);
+  overflow: auto;
+  padding: 0 .25rem .25rem;
+  scrollbar-gutter: stable;
+}
+
+.atlas-reset {
+  display: block;
+  margin: 0 auto .5rem;
+}
+
+@media (max-width: 760px) {
+  .atlas-results {
+    max-height: none;
+    overflow: visible;
   }
 }

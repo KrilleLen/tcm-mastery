@@ -178,10 +178,119 @@
     <div id="globalSearchResults"></div>
   </div>
 </section>
-<section id="conditions" class="view atlas"><div class="title"><span class="eyebrow">The Practice of Chinese Medicine</span><h1>48 kliniska kapitel</h1><p>Kapitelhänvisningar följer andra upplagans struktur. Innehållet är en pedagogisk studiekarta, inte en kopia av boktexten.</p></div><div class="grid cols atlas-layout"><div class="panel list atlas-list"><input id="conditionSearch" class="search" aria-label="Sök kliniska kapitel" placeholder="Sök tillstånd eller mönster…" oninput="renderConditions()"><div id="conditionList" class="atlas-results" aria-label="Sökresultat"></div></div><div class="atlas-reader"><button type="button" class="ghost atlas-back">Till träfflistan</button><div id="conditionDetail" class="panel detail atlas-detail"></div></div></div></section>
-<section id="points" class="view atlas"><div class="title"><span class="eyebrow">Seirin + standardnomenklatur</span><h1>361 klassiska punkter</h1><p>Sök per kod, namn och meridian. Punktlokalisering och nålteknik ska alltid verifieras i den fysiska atlasen och praktisk handledning.</p></div><div class="grid cols atlas-layout"><div class="panel list atlas-list"><input id="pointSearch" class="search" aria-label="Sök akupunkturpunkter" placeholder="Sök LI4, Hegu, Magsäck…" oninput="renderPoints()"><div class="filters" id="channelFilters" aria-label="Filtrera efter meridian"></div><div id="pointList" class="atlas-results" aria-label="Sökresultat"></div></div><div class="atlas-reader"><button type="button" class="ghost atlas-back">Till träfflistan</button><div id="pointDetail" class="panel detail atlas-detail"></div></div></div></section>
-<section id="herbs" class="view atlas"><div class="title"><span class="eyebrow">Chinese Herbal Medicine: Materia Medica</span><h1>102 centrala örter</h1><p>Fokus ligger på kategori, mönsterlogik, säkerhet och jämförelse. Exakta doser är medvetet låsta tills de verifierats i hennes upplaga.</p></div><div class="grid cols atlas-layout"><div class="panel list atlas-list"><input id="herbSearch" class="search" aria-label="Sök örter" placeholder="Sök ört, kategori eller mönster…" oninput="renderHerbs()"><div id="herbList" class="atlas-results" aria-label="Sökresultat"></div></div><div class="atlas-reader"><button type="button" class="ghost atlas-back">Till träfflistan</button><div id="herbDetail" class="panel detail atlas-detail"></div></div></div></section>
-<section id="formulas" class="view atlas"><div class="title"><span class="eyebrow">Chinese Herbal Formulas and Applications</span><h1>58 klassiska formelstrukturer</h1><p>Analysera kategori, bakomliggande mönster och ingredienslogik. Appen godkänner aldrig en modifiering automatiskt.</p></div><div class="grid cols atlas-layout"><div class="panel list atlas-list"><input id="formulaSearch" class="search" aria-label="Sök formler" placeholder="Sök formel, kategori, mönster eller ört…" oninput="renderFormulas()"><div id="formulaList" class="atlas-results" aria-label="Sökresultat"></div></div><div class="atlas-reader"><button type="button" class="ghost atlas-back">Till träfflistan</button><div id="formulaDetail" class="panel detail atlas-detail"></div></div></div></section>
+<section id="conditions" class="view atlas">
+  <div class="title">
+    <span class="eyebrow">The Practice of Chinese Medicine</span>
+    <h1>48 kliniska kapitel</h1>
+    <p>Kapitelhänvisningar följer andra upplagans struktur. Innehållet är en pedagogisk studiekarta, inte en kopia av boktexten.</p>
+  </div>
+  <div class="grid cols atlas-layout">
+    <div class="panel list atlas-list">
+      <div class="atlas-tools">
+        <div class="atlas-search-row">
+          <input id="conditionSearch" class="search" type="text" inputmode="search" enterkeyhint="go" autocapitalize="off" spellcheck="false" aria-label="Sök kliniska kapitel" placeholder="Sök tillstånd eller mönster…" oninput="renderConditions()">
+          <button type="button" class="ghost atlas-clear" aria-label="Rensa sökningen" hidden>Rensa</button>
+        </div>
+        <div class="atlas-suggestions" aria-label="Sökförslag">
+            <button type="button" data-atlas-search="Astma">Astma</button>
+            <button type="button" data-atlas-search="Mjälte-Qi-brist">Mjälte-Qi-brist</button>
+            <button type="button" data-atlas-search="Huvudvärk">Huvudvärk</button>
+        </div>
+        <p id="conditionCount" class="atlas-count" aria-live="polite"></p>
+      </div>
+      <div id="conditionList" class="atlas-results" aria-label="Sökresultat"></div>
+    </div>
+    <div class="atlas-reader">
+      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div id="conditionDetail" class="panel detail atlas-detail"></div>
+    </div>
+  </div>
+</section>
+<section id="points" class="view atlas">
+  <div class="title">
+    <span class="eyebrow">Seirin + standardnomenklatur</span>
+    <h1>361 klassiska punkter</h1>
+    <p>Sök per kod, namn och meridian. Punktlokalisering och nålteknik ska alltid verifieras i den fysiska atlasen och praktisk handledning.</p>
+  </div>
+  <div class="grid cols atlas-layout">
+    <div class="panel list atlas-list">
+      <div class="atlas-tools">
+        <div class="atlas-search-row">
+          <input id="pointSearch" class="search" type="text" inputmode="search" enterkeyhint="go" autocapitalize="off" spellcheck="false" aria-label="Sök akupunkturpunkter" placeholder="Sök LI4, Hegu, Magsäck…" oninput="renderPoints()">
+          <button type="button" class="ghost atlas-clear" aria-label="Rensa sökningen" hidden>Rensa</button>
+        </div>
+        <div class="atlas-suggestions" aria-label="Sökförslag">
+            <button type="button" data-atlas-search="LI4">LI4</button>
+            <button type="button" data-atlas-search="Hegu">Hegu</button>
+            <button type="button" data-atlas-search="Magsäck">Magsäck</button>
+        </div>
+        <div class="filters" id="channelFilters" aria-label="Filtrera efter meridian"></div>
+        <p id="pointCount" class="atlas-count" aria-live="polite"></p>
+      </div>
+      <div id="pointList" class="atlas-results" aria-label="Sökresultat"></div>
+    </div>
+    <div class="atlas-reader">
+      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div id="pointDetail" class="panel detail atlas-detail"></div>
+    </div>
+  </div>
+</section>
+<section id="herbs" class="view atlas">
+  <div class="title">
+    <span class="eyebrow">Chinese Herbal Medicine: Materia Medica</span>
+    <h1>102 centrala örter</h1>
+    <p>Fokus ligger på kategori, mönsterlogik, säkerhet och jämförelse. Exakta doser är medvetet låsta tills de verifierats i hennes upplaga.</p>
+  </div>
+  <div class="grid cols atlas-layout">
+    <div class="panel list atlas-list">
+      <div class="atlas-tools">
+        <div class="atlas-search-row">
+          <input id="herbSearch" class="search" type="text" inputmode="search" enterkeyhint="go" autocapitalize="off" spellcheck="false" aria-label="Sök örter" placeholder="Sök ört, kategori eller mönster…" oninput="renderHerbs()">
+          <button type="button" class="ghost atlas-clear" aria-label="Rensa sökningen" hidden>Rensa</button>
+        </div>
+        <div class="atlas-suggestions" aria-label="Sökförslag">
+            <button type="button" data-atlas-search="Ren Shen">Ren Shen</button>
+            <button type="button" data-atlas-search="Tonifierar Qi">Stärker qi</button>
+            <button type="button" data-atlas-search="Gui Zhi">Gui Zhi</button>
+        </div>
+        <p id="herbCount" class="atlas-count" aria-live="polite"></p>
+      </div>
+      <div id="herbList" class="atlas-results" aria-label="Sökresultat"></div>
+    </div>
+    <div class="atlas-reader">
+      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div id="herbDetail" class="panel detail atlas-detail"></div>
+    </div>
+  </div>
+</section>
+<section id="formulas" class="view atlas">
+  <div class="title">
+    <span class="eyebrow">Chinese Herbal Formulas and Applications</span>
+    <h1>58 klassiska formelstrukturer</h1>
+    <p>Analysera kategori, bakomliggande mönster och ingredienslogik. Appen godkänner aldrig en modifiering automatiskt.</p>
+  </div>
+  <div class="grid cols atlas-layout">
+    <div class="panel list atlas-list">
+      <div class="atlas-tools">
+        <div class="atlas-search-row">
+          <input id="formulaSearch" class="search" type="text" inputmode="search" enterkeyhint="go" autocapitalize="off" spellcheck="false" aria-label="Sök formler" placeholder="Sök formel, kategori, mönster eller ört…" oninput="renderFormulas()">
+          <button type="button" class="ghost atlas-clear" aria-label="Rensa sökningen" hidden>Rensa</button>
+        </div>
+        <div class="atlas-suggestions" aria-label="Sökförslag">
+            <button type="button" data-atlas-search="Gui Zhi Tang">Gui Zhi Tang</button>
+            <button type="button" data-atlas-search="Ren Shen">Innehåller Ren Shen</button>
+            <button type="button" data-atlas-search="Zuo Jin Wan">Zuo Jin Wan</button>
+        </div>
+        <p id="formulaCount" class="atlas-count" aria-live="polite"></p>
+      </div>
+      <div id="formulaList" class="atlas-results" aria-label="Sökresultat"></div>
+    </div>
+    <div class="atlas-reader">
+      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div id="formulaDetail" class="panel detail atlas-detail"></div>
+    </div>
+  </div>
+</section>
 <section id="study" class="view">
   <div class="title study-title">
     <h1>Studiepass</h1>

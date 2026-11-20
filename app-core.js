@@ -679,6 +679,7 @@ const ATLAS = {
 };
 
 const atlasSelected = {};
+const atlasQueries = {};
 let channel = "Alla";
 
 function atlasEntry(view, recordId) {
@@ -710,7 +711,29 @@ function initChannels() {
       const button = event.target.closest("button[data-atlas-id]");
       if (button) selectAtlasEntry(view, button.dataset.atlasId);
     });
-    $(`#${view} .atlas-back`).addEventListener("click", () => closeAtlasReader(view));
+    const section = $(`#${view}`);
+    const input = $(`#${config.prefix}Search`);
+    section.querySelector(".atlas-back").addEventListener("click", () => closeAtlasReader(view));
+    section.querySelector(".atlas-clear").addEventListener("click", () => setAtlasSearch(view, ""));
+    section.querySelector(".atlas-suggestions").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-atlas-search]");
+      if (button) setAtlasSearch(view, button.dataset.atlasSearch);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.isComposing) return;
+      if (event.key === "Escape" && input.value) {
+        event.preventDefault();
+        event.stopPropagation();
+        setAtlasSearch(view, "");
+      }
+      if (event.key === "Enter") {
+        const first = list.querySelector(".item");
+        if (first) {
+          event.preventDefault();
+          selectAtlasEntry(view, first.dataset.atlasId);
+        }
+      }
+    });
   }
 }
 
@@ -725,32 +748,71 @@ function updateChannelFilters() {
 function setChannel(value) {
   channel = value;
   updateChannelFilters();
+  $("#pointList").scrollTop = 0;
   renderPoints();
+}
+
+function setAtlasSearch(view, query) {
+  const input = $(`#${ATLAS[view].prefix}Search`);
+  input.value = query;
+  input.focus();
+  renderAtlas(view);
 }
 
 function renderAtlas(view) {
   const config = ATLAS[view];
   const list = $(`#${config.prefix}List`);
   const detail = $(`#${config.prefix}Detail`);
+  const section = $(`#${view}`);
   const input = $(`#${config.prefix}Search`);
   const query = normalizeSearch(input.value);
+  const queryChanged = atlasQueries[view] !== query;
+  atlasQueries[view] = query;
+  if (queryChanged) list.scrollTop = 0;
   const matches = DATA[view].filter((item) =>
     (view !== "points" || channel === "Alla" || item.channel === channel) &&
     containsSearch(query, config.search(item)),
   );
 
+  const compactQuery = query.replaceAll(" ", "");
+  const exact = query
+    ? matches.findIndex((item) => config.search(item).some(
+      (field) => typeof field === "string" && normalizeSearch(field).replaceAll(" ", "") === compactQuery,
+    ))
+    : -1;
+  if (exact > 0) matches.unshift(...matches.splice(exact, 1));
+
+  section.querySelector(".atlas-clear").hidden = !input.value;
+  section.querySelector(".atlas-suggestions").hidden = Boolean(input.value);
+  const count = $(`#${config.prefix}Count`);
+  count.textContent = `${matches.length} av ${DATA[view].length} poster`;
+
   if (!matches.length) {
     atlasSelected[view] = null;
     $(`#${view}`).classList.remove("atlas-reading");
     list.innerHTML = emptyState(...config.noResults);
+    if (query || (view === "points" && channel !== "Alla")) {
+      const reset = document.createElement("button");
+      reset.type = "button";
+      reset.className = "ghost atlas-reset";
+      reset.textContent = "Visa alla poster";
+      reset.addEventListener("click", () => {
+        if (view === "points") {
+          channel = "Alla";
+          updateChannelFilters();
+        }
+        setAtlasSearch(view, "");
+      });
+      list.append(reset);
+    }
     detail.innerHTML = emptyState("Ingen träff att visa", "Ändra sökningen för att öppna en träff.");
     return;
   }
 
-  const selected = matches.find((item) => config.id(item) === atlasSelected[view]) || matches[0];
+  const selected = (queryChanged && exact >= 0 ? matches[0] : null) ||
+    matches.find((item) => config.id(item) === atlasSelected[view]) || matches[0];
   atlasSelected[view] = config.id(selected);
-  const visible = view === "points" ? matches.slice(0, 120) : matches;
-  const rows = visible.map((item) => {
+  const rows = matches.map((item) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "item";
@@ -769,13 +831,6 @@ function renderAtlas(view) {
     return button;
   });
   list.replaceChildren(...rows);
-  if (visible.length < matches.length) {
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = `Visar ${visible.length} av ${matches.length}. Sök mer specifikt.`;
-    list.append(note);
-  }
-
   detail.innerHTML = config.detail(selected);
 }
 
