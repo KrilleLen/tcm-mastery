@@ -259,19 +259,16 @@ test("startmenyn öppnar studiepasset, och okända hash-rutter visar startsidan"
   dom.window.close();
 });
 
-test("övergripande sök hittar punktkoder och öppnar rätt register", async () => {
+test("övergripande sök hittar punktkoder och öppnar rätt register", () => {
   const dom = loadApp({ hash: "#search" });
   const { window } = dom;
   input(window, window.document.querySelector("#globalSearchInput"), "li 4");
   const link = window.document.querySelector('#globalSearchResults [data-record="LI4"]');
   assert.ok(link);
   link.click();
-  await new Promise((resolve) => window.setTimeout(resolve, 10));
   assert.equal(window.location.hash, "#points/LI4");
   assert.ok(window.document.querySelector("#points.active"));
-  if (typeof window.openAtlasRecord === "function") {
-    assert.match(window.document.querySelector("#pointDetail").textContent, /Hegu/);
-  }
+  assert.match(window.document.querySelector("#pointDetail").textContent, /Hegu/);
   dom.window.close();
 });
 

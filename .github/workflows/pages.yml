@@ -37,7 +37,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site
-          cp index.html app.css conditions.js points.js herbs.js formulas.js app-core.js manifest.webmanifest icon.svg icon-180.png icon-192.png icon-512.png sw.js _site/
+          cp index.html app.css tcm-study.css tcm-atlas.css tcm-cases.css tcm-offline.css study-desk.webp conditions.js points.js herbs.js formulas.js app-core.js manifest.webmanifest icon.svg icon-180.png icon-192.png icon-512.png sw.js _site/
+          sed -i "s/tcm-release=3/tcm-release=${GITHUB_SHA}/g" _site/index.html
+          sed -i "s/RELEASE = \"3\"/RELEASE = \"${GITHUB_SHA}\"/" _site/sw.js
           touch _site/.nojekyll
       - name: Konfigurera Pages
         uses: actions/configure-pages@v5

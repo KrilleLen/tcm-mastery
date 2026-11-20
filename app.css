@@ -49,7 +49,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .home-hero .ghost { background: #ffffff0d; border-color: #9eb4a376; color: #fffdf6; }
 .home-hero .ghost:hover { background: #ffffff19; }
 .home-hero-aside { display: flex; align-items: flex-end; justify-content: flex-end; position: relative; padding: 25px; }
-.home-hero-image { position: absolute; inset: 0; background: radial-gradient(ellipse at 80% 37%, #7d8255 0, #355744 38%, transparent 73%), repeating-linear-gradient(125deg, #ffffff14 0 1px, transparent 1px 22px); opacity: .9; }
+.home-hero-image { position: absolute; inset: 0; background: center 48% / cover no-repeat url("study-desk.webp"), radial-gradient(ellipse at 80% 37%, #7d8255 0, #355744 38%, transparent 73%), repeating-linear-gradient(125deg, #ffffff14 0 1px, transparent 1px 22px); opacity: .9; }
 .home-hero-image::after { position: absolute; inset: 0; background: linear-gradient(90deg, var(--spruce), transparent 37%), linear-gradient(0deg, #102d2599, transparent 58%); content: ""; }
 .home-checkpoint { position: relative; width: min(100%, 265px); padding: 15px 17px; background: #102d25ed; color: #fffdf6; border: 1px solid #e5edd652; border-radius: 12px; }
 .home-checkpoint strong { font-size: 1.05rem; }
@@ -71,6 +71,7 @@ header { display: flex; justify-content: space-between; align-items: center; gap
 .home-library span { display: block; color: var(--muted); font-size: .9rem; }
 .home-library b { font: 500 1.9rem var(--serif); }
 .study-information { margin-top: 28px; border-top: 1px solid #d0d8cd; padding: 16px 0; color: var(--muted); }
+.text-link { color: var(--jade); font-weight: 700; text-underline-offset: 3px; }
 .study-information summary { width: fit-content; cursor: pointer; color: var(--text); font-weight: 650; }
 .study-information p { max-width: 78ch; }
 .skip-link { position: fixed; z-index: 100; top: 8px; left: 8px; padding: 10px; border-radius: 8px; background: var(--panel); transform: translateY(-150%); }

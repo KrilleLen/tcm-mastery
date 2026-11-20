@@ -6,6 +6,10 @@ const SHELL = new URL("index.html", SCOPE).href;
 const ASSETS = new Set([
   "index.html",
   "app.css",
+  "tcm-study.css",
+  "tcm-atlas.css",
+  "tcm-cases.css",
+  "study-desk.webp",
   "tcm-offline.css",
   "conditions.js",
   "points.js",
@@ -84,7 +88,11 @@ self.addEventListener("fetch", (event) => {
     if (url.pathname === scopePath || url.pathname === `${scopePath}index.html`) {
       event.respondWith(serveRelease(SHELL));
     }
-  } else if (ASSETS.has(url.href)) {
-    event.respondWith(serveRelease(url.href));
+    return;
   }
+
+  if (url.searchParams.get("tcm-release") === RELEASE) {
+    url.searchParams.delete("tcm-release");
+  }
+  if (ASSETS.has(url.href)) event.respondWith(serveRelease(url.href));
 });

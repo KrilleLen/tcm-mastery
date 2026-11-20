@@ -112,10 +112,6 @@ function renderView(id) {
   if (id === "home") renderHome();
   if (id === "progress") renderProgress();
   if (id === "search") renderUniversalSearch();
-  if (id === "conditions") renderConditions();
-  if (id === "points") renderPoints();
-  if (id === "herbs") renderHerbs();
-  if (id === "formulas") renderFormulas();
   if (id === "study") currentCard ? updateStudyMeta() : newStudy();
   if (id === "case") renderCase();
   if (id === "master") renderMaster();
@@ -130,6 +126,7 @@ function go(id, updateHistory = true, recordId = null) {
   const navTarget = ATLAS_VIEWS.includes(target) || target === "search"
     ? "atlas" : target === "progress" ? "home" : target;
   const activeView = document.getElementById(target);
+  if ($("#master.active") && target !== "master") pauseMasterTimer();
 
   $$(".view").forEach((view) => view.classList.toggle("active", view === activeView));
   $$(".site-nav [data-v]").forEach((link) => {
@@ -148,7 +145,8 @@ function go(id, updateHistory = true, recordId = null) {
 
   appliedHash = location.hash;
   window.scrollTo({ top: 0, behavior: "instant" });
-  renderView(target);
+  if (ATLAS_VIEWS.includes(target)) restoreAtlasRoute(target, recordId);
+  else renderView(target);
   const heading = activeView.querySelector("h1");
   document.title = target === "home" || !heading
     ? "Mästaren · TCM-studier"
@@ -156,9 +154,6 @@ function go(id, updateHistory = true, recordId = null) {
   if (updateHistory && heading) {
     heading.tabIndex = -1;
     (target === "search" ? $("#globalSearchInput") : heading).focus({ preventScroll: true });
-  }
-  if (ATLAS_VIEWS.includes(target) && typeof restoreAtlasRoute === "function") {
-    restoreAtlasRoute(target, recordId);
   }
 }
 
@@ -182,7 +177,7 @@ document.addEventListener("click", (event) => {
   const link = event.target.closest('a[href^="#"]');
   if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey ||
       event.ctrlKey || event.shiftKey || event.altKey) return;
-  if (link.dataset.record && typeof openAtlasRecord === "function") {
+  if (link.dataset.record) {
     event.preventDefault();
     openAtlasRecord(link.dataset.view, link.dataset.record);
     return;
@@ -281,7 +276,7 @@ const SEARCH_GROUPS = [
   },
   {
     view: "herbs", label: "Örtkort",
-    entry: (item) => [item.pinyin, item.pinyin, item.category, [item.latin, item.pattern]],
+    entry: (item) => [item.pinyin, item.pinyin, item.category, [item.pattern, item.functions]],
   },
   {
     view: "formulas", label: "Formler",
