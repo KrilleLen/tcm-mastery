@@ -121,3 +121,35 @@ test("vägledning före eget svar påverkar nästa intervall", (t) => {
   assert.match(window.document.querySelector("#studyFeedback").textContent, /Nästa repetition om 1 dag/);
   assert.equal(JSON.parse(window.localStorage.getItem("mastery-v2")).correct, 0);
 });
+
+test("ett pass med svåra kort använder de senaste bedömningarna och respekterar ämnet", (t) => {
+  const window = loadStudy(t, {
+    cards: {
+      "point:LI4": { reviews: 2, lastGrade: 0, due: Date.now() + 60000 },
+      "point:LI5": { reviews: 1, lastGrade: 2 },
+      "herb:Ren Shen": { reviews: 1, lastGrade: 0 },
+    },
+  });
+  const { document } = window;
+  assert.equal(window.studyOverview().weak, 2);
+  document.querySelector("#studyTopic").value = "point";
+  const mode = document.querySelector("#studyMode");
+  mode.value = "weak";
+  mode.dispatchEvent(new window.Event("change"));
+  document.querySelector("#studySetup button").click();
+  assert.match(document.querySelector("#studyQ").textContent, /LI4/);
+  assert.equal(document.querySelector("#studyPosition").textContent, "Kort 1 av 1");
+  window.grade(2);
+  assert.equal(document.querySelector("#studyAgain").hidden, true);
+  assert.equal(window.studyOverview().weak, 1);
+});
+
+test("frågetypen för svåra kort visar en förklaring om inga bedömningar finns", (t) => {
+  const window = loadStudy(t);
+  const { document } = window;
+  const mode = document.querySelector("#studyMode");
+  mode.value = "weak";
+  mode.dispatchEvent(new window.Event("change"));
+  assert.equal(document.querySelector("#studySetup button").disabled, true);
+  assert.match(document.querySelector("#studyQueueInfo").textContent, /Ännu inga/);
+});

@@ -762,6 +762,7 @@ function restoreStudySession(session) {
 
   return {
     topic, length, queue, grades,
+    mode: session.mode === "weak" ? "weak" : "regular",
     draft: typeof session.draft === "string" ? session.draft : "",
     hintUsed: session.hintUsed === true,
     readyToGrade: session.readyToGrade === true || session.hintUsed === true,
@@ -792,8 +793,18 @@ function studyQueues(cards) {
   return { fresh, due: due.sort(byDue), later: later.sort(byDue) };
 }
 
-function studyQueue(topic, length) {
-  const { due, fresh } = studyQueues(studyCardsFor(topic));
+function weakStudyCards(cards) {
+  const lastGrade = (card) => finiteNumber(state.cards[card.id]?.lastGrade, 2);
+  const lapses = (card) => finiteNumber(state.cards[card.id]?.lapses);
+  return cards
+    .filter((card) => finiteNumber(state.cards[card.id]?.reviews) && lastGrade(card) <= 1)
+    .sort((left, right) => lastGrade(left) - lastGrade(right) || lapses(right) - lapses(left));
+}
+
+function studyQueue(topic, length, mode) {
+  const cards = studyCardsFor(topic);
+  if (mode === "weak") return weakStudyCards(cards).slice(0, length).map((card) => card.id);
+  const { due, fresh } = studyQueues(cards);
   const selected = due.slice(0, length);
   while (selected.length < length && fresh.length) {
     const index = Math.floor(Math.random() * fresh.length);
@@ -809,6 +820,7 @@ function studyOverview() {
   return {
     started: CARDS.length - fresh.length,
     due: due.length,
+    weak: weakStudyCards(CARDS).length,
     inProgress: completed < total &&
       (completed > 0 || Boolean(studySession.draft.trim()) || studySession.readyToGrade),
     completed,
@@ -817,7 +829,17 @@ function studyOverview() {
 }
 
 function updateStudySetup() {
-  const selected = studyQueues(studyCardsFor($("#studyTopic").value));
+  const cards = studyCardsFor($("#studyTopic").value);
+  const weak = $("#studyMode").value === "weak";
+  const weakCount = weak ? weakStudyCards(cards).length : 0;
+  $("#studySetup button").disabled = weak && !weakCount;
+  if (weak) {
+    $("#studyQueueInfo").textContent = weakCount
+      ? `${weakCount} kort som du bedömde som delvis rätt eller behöver träna mer på.`
+      : "Ännu inga sådana kort i ämnet. Välj repetitioner och nya kort för att göra en första bedömning.";
+    return;
+  }
+  const selected = studyQueues(cards);
   $("#studyQueueInfo").textContent = selected.due.length
     ? `${selected.due.length} kort redo att repetera. De kommer först.`
     : `${selected.fresh.length} nya kort i ämnet.`;
@@ -830,10 +852,10 @@ function updateStudyMeta() {
   updateStudySetup();
 }
 
-function startStudy(topic = "all", length = 5) {
+function startStudy(topic = "all", length = 5, mode = "regular") {
   if (!STUDY_TOPICS.includes(topic)) topic = "all";
   studySession = {
-    topic, length, queue: studyQueue(topic, length), grades: [],
+    topic, length, mode, queue: studyQueue(topic, length, mode), grades: [],
     draft: "", hintUsed: false, readyToGrade: false, feedback: "", startedAt: Date.now(),
   };
   saveStudySession();
@@ -846,8 +868,10 @@ function saveStudySession() {
 }
 
 function renderStudySummary() {
-  const { grades, topic } = studySession;
-  const { due, fresh, later } = studyQueues(studyCardsFor(topic));
+  const { grades, topic, mode } = studySession;
+  const cards = studyCardsFor(topic);
+  const { due, fresh, later } = studyQueues(cards);
+  const weakCount = weakStudyCards(cards).length;
   const trainingCount = grades.filter((value) => value === 0).length;
   const unsureCount = grades.filter((value) => value === 1).length;
   const confidentCount = grades.filter((value) => value === 2).length;
@@ -861,7 +885,9 @@ function renderStudySummary() {
       ? `Nästa repetition blir tillgänglig ${date.toLocaleString("sv-SE", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`
       : "Det finns inga kort redo i det här ämnet. Välj ett annat ämne för att fortsätta.";
   }
-  $("#studyAgain").hidden = !due.length && !fresh.length;
+  $("#studyAgain").hidden = mode === "weak" ? !weakCount : !due.length && !fresh.length;
+  $("#studyWeak").hidden = mode === "weak" || !weakCount;
+  $("#studyWeak").textContent = `Träna svåra kort (${weakCount})`;
   $("#studySummary").classList.remove("hidden");
   $("#studyCard").classList.add("hidden");
   $("#studySummary").focus();
@@ -877,6 +903,7 @@ function newStudy(focusQuestion = false) {
   currentCard = STUDY_CARD_BY_ID.get(queue[grades.length]) ?? null;
   $("#studyTopic").value = studySession.topic;
   $("#studyLength").value = String(studySession.length);
+  $("#studyMode").value = studySession.mode;
   updateStudyMeta();
   const feedback = $("#studyFeedback");
   feedback.textContent = studySession.feedback;
@@ -923,14 +950,20 @@ $("#studyText").addEventListener("input", (event) => {
 });
 
 $("#studyTopic").addEventListener("change", updateStudySetup);
+$("#studyMode").addEventListener("change", updateStudySetup);
 $("#studySetup").addEventListener("submit", (event) => {
   event.preventDefault();
   const length = Number($("#studyLength").value);
-  startStudy($("#studyTopic").value, STUDY_LENGTHS.includes(length) ? length : 5);
+  if ($("#studySetup button").disabled) return;
+  startStudy($("#studyTopic").value, STUDY_LENGTHS.includes(length) ? length : 5, $("#studyMode").value);
   $("#studySettings").open = false;
 });
 
-$("#studyAgain").addEventListener("click", () => startStudy(studySession.topic, studySession.length));
+$("#studyAgain").addEventListener("click", () => {
+  const { topic, length, mode } = studySession;
+  startStudy(topic, length, mode);
+});
+$("#studyWeak").addEventListener("click", () => startStudy(studySession.topic, studySession.length, "weak"));
 $("#studyChange").addEventListener("click", () => {
   $("#studySettings").open = true;
   $("#studyTopic").focus();

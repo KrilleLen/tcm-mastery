@@ -201,8 +201,15 @@
           <option value="15">15 kort</option>
         </select>
       </div>
+      <div class="study-field">
+        <label for="studyMode">Frågor</label>
+        <select id="studyMode" aria-describedby="studyQueueInfo">
+          <option value="regular">Repetitioner och nya kort</option>
+          <option value="weak">Kort som behöver tränas mer</option>
+        </select>
+      </div>
       <button class="primary" type="submit">Starta nytt pass</button>
-      <p id="studyQueueInfo"></p>
+      <p id="studyQueueInfo" aria-live="polite"></p>
     </form>
   </details>
   <p id="studyFeedback" class="study-feedback" role="status" hidden></p>
@@ -240,7 +247,8 @@
     <p id="studySummaryStats"></p>
     <div class="actions">
       <button id="studyAgain" type="button" class="primary">Starta nästa pass</button>
-      <button id="studyChange" type="button" class="ghost">Välj ämne</button>
+      <button id="studyWeak" type="button" class="ghost" hidden>Träna svåra kort</button>
+      <button id="studyChange" type="button" class="ghost">Byt ämne eller frågetyp</button>
     </div>
   </div>
 </section>
