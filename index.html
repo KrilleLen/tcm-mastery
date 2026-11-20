@@ -3,31 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#07140f">
+<meta name="theme-color" content="#102d25">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mästaren">
 <meta name="description" content="Källmedvetet studieverktyg för traditionell kinesisk medicin, akupunktur, örter och formler.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Mästaren 2.1 · TCM Study OS</title>
+<title>Mästaren · TCM-studier</title>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <div class="app">
-<header><div class="brand"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren 2.1</b><small>TCM Study OS · kapitelstyrd kunskapsatlas</small></div></div><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">＋ App</button></header>
+<header><div class="brand"><div class="logo" aria-hidden="true">針</div><div><b>Mästaren</b><small>Studieapp för akupunktur och TCM</small></div></div><button id="installButton" type="button" class="pill" onclick="installHelp()" aria-label="Installera appen">＋ App</button></header>
 <main>
-<section id="home" class="view active">
-<div class="hero"><span class="eyebrow">Från bokhylla till mästerskap</span><h1>Förstå. Jämför. Försvara.</h1><p>En sammanhängande studiemodell för diagnostik, 48 kliniska kapitel, 361 klassiska akupunkturpunkter, 102 centrala örter, 58 klassiska formler och säkerhetsstyrt kliniskt resonemang.</p><div class="notice">Detta är ett utbildningsverktyg. Traditionella indikationer är inte automatiskt vetenskapligt bevisade effekter. Akuta symtom, läkemedelsinteraktioner, graviditet, toxicitet och invasiv teknik kräver kvalificerad medicinsk bedömning och handledning.</div><div class="actions"><button type="button" class="primary" onclick="go('study')">Starta dagens pass</button><button type="button" class="ghost" onclick="go('conditions')">Öppna klinisk atlas</button></div></div>
-<div class="stats"><div class="stat"><small>Kliniska kapitel</small><b>48</b></div><div class="stat"><small>Klassiska punkter</small><b>361</b></div><div class="stat"><small>Örtkort</small><b>102</b></div><div class="stat"><small>Formler</small><b>58</b></div></div>
-<div class="grid dashboard-grid">
-<article class="card module"><span class="eyebrow">Reid · grundkarta</span><h2>Teorin som håller ihop allt</h2><p>Yin–Yang, Qi, Blod, kroppsvätskor, fem faser, Zang-Fu, patogena faktorer, smak, temperatur och riktning.</p><div class="bar"><i style="width:72%"></i></div></article>
-<article class="card module"><span class="eyebrow">Maciocia · 48 kapitel</span><h2>Diagnostik före behandling</h2><p>Varje kapitel tränas som säkerhet → frågor → mönster → mekanism → princip → val → uppföljning.</p><div class="bar"><i style="width:100%"></i></div></article>
-<article class="card module"><span class="eyebrow">Seirin + WHO-nomenklatur</span><h2>Hela punktregistret</h2><p>Alla 361 klassiska punktkoder är sökbara per meridian. Centrala punkter har namn; teknik hålls låst till atlas och handledning.</p><div class="bar"><i style="width:100%"></i></div></article>
-<article class="card module"><span class="eyebrow">Materia Medica + Formulas</span><h2>Jämför istället för att rabbla</h2><p>Örter och formler organiseras efter kategori, mönster, funktion, säkerhet och skillnaden mot närliggande val.</p><div class="bar"><i style="width:78%"></i></div></article>
-</div>
-<div class="title"><span class="eyebrow">Kunskapsgraf</span><h1>Ingen genväg från symtom till recept</h1></div>
-<div class="panel graph"><div class="graphrow"><div class="node">Rödflaggor</div><div class="arrow">→</div><div class="node">Symtom</div><div class="arrow">→</div><div class="node">Frågor</div><div class="arrow">→</div><div class="node">Mönster</div><div class="arrow">→</div><div class="node">Mekanism</div><div class="arrow">→</div><div class="node">Princip</div><div class="arrow">→</div><div class="node">Punkt / ört / formel</div><div class="arrow">→</div><div class="node">Säkerhet</div><div class="arrow">→</div><div class="node">Uppföljning</div></div></div>
+<section id="home" class="view active" aria-labelledby="homeTitle">
+  <div class="home-hero">
+    <div class="home-hero-copy">
+      <p class="eyebrow">Ditt nästa studiepass</p>
+      <h1 id="homeTitle">Vad vill du<br class="hero-break"> kunna förklara?</h1>
+      <p class="hero-description">Träna på att minnas, jämföra och motivera. Börja med ett kort pass eller slå upp det du behöver.</p>
+      <div class="actions">
+        <a class="primary" id="homeStudyAction" href="#study">Starta ett studiepass</a>
+        <a class="ghost" id="homeAtlasAction" href="#conditions">Öppna atlasen</a>
+      </div>
+    </div>
+    <aside class="home-hero-aside" aria-label="Ditt studieläge">
+      <div class="home-hero-image" aria-hidden="true"></div>
+      <div class="home-checkpoint">
+        <strong id="homeCheckpointTitle">Ett kort i taget</strong>
+        <p id="homeCheckpointText">Välj vad du vill repetera och hur många frågor du vill göra.</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="section-intro">
+    <h2>Träna på tre sätt</h2>
+  </div>
+  <div class="home-paths">
+    <a href="#study" class="path-card path-study">
+      <span class="path-icon" aria-hidden="true">◫</span>
+      <h3>Repetitionskort</h3>
+      <p>Plocka fram svaret ur minnet och följ upp det som sitter sämst.</p>
+      <span class="path-action">Öppna studiepass</span>
+    </a>
+    <a href="#case" class="path-card path-case">
+      <span class="path-icon" aria-hidden="true">◇</span>
+      <h3>Patientfall</h3>
+      <p>Öva på att ställa frågor, väga fynd och motivera dina val.</p>
+      <span class="path-action" id="homeCaseAction">Öppna patientfall</span>
+    </a>
+    <a href="#master" class="path-card path-master">
+      <span class="path-icon" aria-hidden="true">◌</span>
+      <h3>Muntligt förhör</h3>
+      <p>Förklara resonemanget högt och pröva det mot följdfrågor.</p>
+      <span class="path-action">Öppna muntligt förhör</span>
+    </a>
+  </div>
+
+  <div class="section-intro">
+    <h2>Studieatlas</h2>
+  </div>
+  <div class="home-library" aria-label="Atlasens register">
+    <a href="#conditions"><span>Kliniska kapitel</span><b>48</b></a>
+    <a href="#points"><span>Akupunkturpunkter</span><b>361</b></a>
+    <a href="#herbs"><span>Örtkort</span><b>102</b></a>
+    <a href="#formulas"><span>Formler</span><b>58</b></a>
+  </div>
+
+  <details class="study-information">
+    <summary>Studieupplägg, källor och säkerhet</summary>
+    <p>Detta är ett utbildningsverktyg. Traditionella indikationer är inte automatiskt vetenskapligt bevisade effekter. Akuta symtom, läkemedelsinteraktioner, graviditet, toxicitet och invasiv teknik kräver kvalificerad medicinsk bedömning och handledning.</p>
+    <p>Reid ger en grund för teorin. Kapitelindexet följer Maciocia. Punktregistret använder Seirin och standardnomenklatur. Örter och formler utgår från respektive Materia Medica och Formulas.</p>
+    <p>Öva i ordningen säkerhet, symtom, frågor, mönster, mekanism, princip, val av verktyg och uppföljning.</p>
+  </details>
 </section>
 <section id="conditions" class="view"><div class="title"><span class="eyebrow">The Practice of Chinese Medicine</span><h1>48 kliniska kapitel</h1><p>Kapitelhänvisningar följer andra upplagans struktur. Innehållet är en pedagogisk studiekarta, inte en kopia av boktexten.</p></div><div class="grid cols"><div class="panel list"><input id="conditionSearch" class="search" aria-label="Sök kliniska kapitel" placeholder="Sök tillstånd eller mönster…" oninput="renderConditions()"><div id="conditionList"></div></div><div id="conditionDetail" class="panel detail" aria-live="polite"></div></div></section>
 <section id="points" class="view"><div class="title"><span class="eyebrow">Seirin + standardnomenklatur</span><h1>361 klassiska punkter</h1><p>Sök per kod, namn och meridian. Punktlokalisering och nålteknik ska alltid verifieras i den fysiska atlasen och praktisk handledning.</p></div><div class="grid cols"><div class="panel list"><input id="pointSearch" class="search" aria-label="Sök akupunkturpunkter" placeholder="Sök LI4, Hegu, Magsäck…" oninput="renderPoints()"><div class="filters" id="channelFilters" aria-label="Filtrera efter meridian"></div><div id="pointList"></div></div><div id="pointDetail" class="panel detail" aria-live="polite"></div></div></section>
