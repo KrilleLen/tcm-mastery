@@ -711,24 +711,20 @@ let atlasBookmarks = loadAtlasBookmarks() || {};
 let channel = "Alla";
 
 function atlasEntry(view, recordId) {
-  const config = ATLAS[view];
-  return config && DATA[view].find((item) => config.id(item) === String(recordId));
-}
-
-function readAtlasBookmarkData() {
-  try {
-    return { raw: localStorage.getItem(ATLAS_BOOKMARK_KEY) };
-  } catch (error) {
-    return null;
-  }
+  if (!Object.hasOwn(ATLAS, view) || recordId == null) return null;
+  return DATA[view].find((item) => ATLAS[view].id(item) === String(recordId));
 }
 
 function loadAtlasBookmarks() {
-  const data = readAtlasBookmarkData();
-  if (!data) return null;
+  let raw;
+  try {
+    raw = localStorage.getItem(ATLAS_BOOKMARK_KEY);
+  } catch (error) {
+    return null;
+  }
   let parsed;
   try {
-    parsed = JSON.parse(data.raw || "{}");
+    parsed = JSON.parse(raw || "{}");
   } catch (error) {
     return {};
   }
@@ -764,10 +760,8 @@ function saveAtlasBookmark(view) {
     showToast("Ändringen sparas under den här fliken.");
   }
   if (wasSaved && atlasSavedOnly.has(view)) {
-    const section = $(`#${view}`);
-    section.classList.remove("atlas-reading");
-    renderAtlas(view);
-    section.querySelector('[data-atlas-saved="true"]').focus();
+    go(view);
+    $(`#${view} [data-atlas-saved="true"]`).focus();
     return;
   }
   renderAtlas(view);
@@ -801,12 +795,13 @@ function initChannels() {
     const list = $(`#${config.prefix}List`);
     list.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-atlas-id]");
-      if (button) selectAtlasEntry(view, button.dataset.atlasId);
+      if (button) openAtlasRecord(view, button.dataset.atlasId);
     });
     const section = $(`#${view}`);
     const input = $(`#${config.prefix}Search`);
     section.querySelector(".atlas-back").addEventListener("click", () => closeAtlasReader(view));
     section.querySelector(".atlas-save").addEventListener("click", () => saveAtlasBookmark(view));
+    section.querySelector(".atlas-copy").addEventListener("click", () => copyAtlasRecord(view));
     section.querySelector(".atlas-compare-toggle").addEventListener("click", () => toggleAtlasComparison(view));
     const comparison = section.querySelector(".atlas-comparison");
     const compareSearch = comparison.querySelector(".atlas-compare-search");
@@ -844,7 +839,7 @@ function initChannels() {
         const first = list.querySelector(".item");
         if (first) {
           event.preventDefault();
-          selectAtlasEntry(view, first.dataset.atlasId);
+          openAtlasRecord(view, first.dataset.atlasId);
         }
       }
     });
@@ -873,6 +868,13 @@ function setAtlasSearch(view, query) {
   renderAtlas(view);
 }
 
+function atlasMatches(view, item, query) {
+  const config = ATLAS[view];
+  return (!atlasSavedOnly.has(view) || atlasBookmarks[view]?.has(config.id(item))) &&
+    (view !== "points" || channel === "Alla" || item.channel === channel) &&
+    containsSearch(query, config.search(item));
+}
+
 function renderAtlas(view) {
   const config = ATLAS[view];
   const list = $(`#${config.prefix}List`);
@@ -885,11 +887,7 @@ function renderAtlas(view) {
   if (queryChanged) list.scrollTop = 0;
   const bookmarks = atlasBookmarks[view];
   const savedOnly = atlasSavedOnly.has(view);
-  const matches = DATA[view].filter((item) =>
-    (!savedOnly || bookmarks?.has(config.id(item))) &&
-    (view !== "points" || channel === "Alla" || item.channel === channel) &&
-    containsSearch(query, config.search(item)),
-  );
+  const matches = DATA[view].filter((item) => atlasMatches(view, item, query));
 
   const compactQuery = query.replaceAll(" ", "");
   const exact = query
@@ -976,6 +974,7 @@ function renderAtlas(view) {
   });
   list.replaceChildren(...rows);
   detail.innerHTML = config.detail(selected);
+  appendAtlasRelated(view, selected, detail);
   renderAtlasComparison(view);
 }
 
@@ -998,6 +997,8 @@ function renderAtlasComparison(view) {
   compareButton.setAttribute("aria-expanded", String(isOpen));
   compareButton.textContent = isOpen ? "Stäng jämförelsen" : "Jämför kort";
   comparison.hidden = !isOpen;
+  section.querySelector(".atlas-copy").hidden = isOpen || !primary;
+  section.querySelector(".atlas-copy-fallback").hidden = true;
   section.classList.toggle("atlas-comparing", isOpen);
   section.querySelector(".atlas-detail").hidden = isOpen;
   if (!isOpen) return;
@@ -1097,32 +1098,118 @@ function selectAtlasComparison(view, targetId) {
   $(`#${view} .atlas-compare-table caption`)?.focus();
 }
 
-function closeAtlasReader(view) {
-  const config = ATLAS[view];
-  const section = $(`#${view}`);
-  delete atlasComparisons[view];
-  section.classList.remove("atlas-reading");
-  renderAtlasComparison(view);
-  const selected = section.querySelector(".atlas-results .selected");
-  (selected || $(`#${config.prefix}Search`)).focus();
+function atlasRecordHash(view, recordId) {
+  return `#${view}/${encodeURIComponent(recordId)}`;
 }
 
-function selectAtlasEntry(view, recordId) {
-  if (!atlasEntry(view, recordId)) return false;
-  atlasSelected[view] = recordId;
+function restoreAtlasRoute(view, recordId) {
+  if (!Object.hasOwn(ATLAS, view)) return false;
+  const config = ATLAS[view];
   const section = $(`#${view}`);
-  section.classList.add("atlas-reading");
-  renderAtlas(view);
+  const item = recordId == null ? null : atlasEntry(view, recordId);
+  section.classList.toggle("atlas-reading", Boolean(item));
+  delete atlasComparisons[view];
 
-  const heading = section.querySelector(".atlas-detail h2");
+  if (item) {
+    const input = $(`#${config.prefix}Search`);
+    const query = normalizeSearch(input.value);
+    if (!atlasMatches(view, item, query)) {
+      input.value = "";
+      atlasSavedOnly.delete(view);
+      if (view === "points") {
+        channel = "Alla";
+        updateChannelFilters();
+      }
+    }
+    atlasQueries[view] = normalizeSearch(input.value);
+    atlasSelected[view] = config.id(item);
+  }
+  renderAtlas(view);
+  return Boolean(item) || recordId == null;
+}
+
+function openAtlasRecord(view, recordId) {
+  const item = atlasEntry(view, recordId);
+  if (!item) return false;
+  go(view, true, ATLAS[view].id(item));
+  const heading = $(`#${view} .atlas-detail h2`);
   if (heading) {
     heading.tabIndex = -1;
     heading.focus({ preventScroll: true });
     if (window.matchMedia?.("(max-width: 760px)").matches) {
-      section.querySelector(".atlas-reader").scrollIntoView({ block: "start" });
+      $(`#${view} .atlas-reader`).scrollIntoView({ block: "start", behavior: "instant" });
     }
   }
   return true;
+}
+
+function closeAtlasReader(view) {
+  go(view);
+  const section = $(`#${view}`);
+  const selected = section.querySelector(".atlas-results .selected");
+  (selected || $(`#${ATLAS[view].prefix}Search`)).focus();
+}
+
+async function copyAtlasRecord(view) {
+  const recordId = atlasSelected[view];
+  if (!atlasEntry(view, recordId)) return;
+  const url = new URL(atlasRecordHash(view, recordId), location.href).href;
+
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast("Kortlänken är kopierad.");
+  } catch (error) {
+    const fallback = $(`#${view} .atlas-copy-fallback`);
+    const input = fallback.querySelector("input");
+    input.value = url;
+    fallback.hidden = false;
+    input.select();
+    input.focus();
+  }
+}
+
+function appendAtlasRelated(view, item, target) {
+  let label;
+  let relatedType = view;
+  let items;
+
+  if (view === "points") {
+    const channelSequence = DATA.points.filter((point) => point.channel === item.channel);
+    const index = channelSequence.indexOf(item);
+    items = [channelSequence[index - 1], channelSequence[index + 1]].filter(Boolean);
+    label = "Intilliggande punkter i registret";
+  } else if (view === "formulas") {
+    relatedType = "herbs";
+    items = item.ingredients.map((name) => atlasEntry(relatedType, name)).filter(Boolean);
+    label = "Ingredienser med örtkort";
+  } else {
+    return;
+  }
+  if (!items.length) return;
+
+  const related = document.createElement("div");
+  related.className = "atlas-related";
+  const heading = document.createElement("h3");
+  heading.textContent = label;
+  related.append(heading);
+
+  const links = document.createElement("div");
+  links.className = "chips";
+  const config = ATLAS[relatedType];
+  for (const entry of items) {
+    const link = document.createElement("a");
+    link.className = "chip";
+    link.href = atlasRecordHash(relatedType, config.id(entry));
+    link.textContent = config.title(entry);
+    link.addEventListener("click", (event) => {
+      if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return;
+      event.preventDefault();
+      openAtlasRecord(relatedType, config.id(entry));
+    });
+    links.append(link);
+  }
+  related.append(links);
+  target.append(related);
 }
 
 function conditionAtlasDetail(item) {

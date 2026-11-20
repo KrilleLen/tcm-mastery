@@ -96,3 +96,26 @@ test("jämförelsen visar två valda kort sida vid sida med källor och säkerhe
   assert.match(q("#herbDetail h2").textContent, /Ren Shen/);
   window.close();
 });
+
+test("kortlänkar öppnar rätt post och relaterade kort länkar vidare", async () => {
+  const window = openApp("#points/LI4");
+  const d = window.document;
+  assert.match(d.querySelector("#pointDetail h2").textContent, /LI4 · Hegu/);
+  assert.ok(d.querySelector("#points").classList.contains("atlas-reading"));
+
+  d.querySelector("#points .atlas-copy").click();
+  const fallback = d.querySelector("#points .atlas-copy-fallback");
+  assert.equal(fallback.hidden, false);
+  assert.equal(fallback.querySelector("input").value, "https://example.test/tcm-mastery/#points/LI4");
+
+  const link = d.querySelector('#pointDetail .atlas-related a[href="#points/LI5"]');
+  link.click();
+  assert.equal(window.location.hash, "#points/LI5");
+  assert.match(d.querySelector("#pointDetail h2").textContent, /LI5/);
+  const popstate = new Promise((resolve) => window.addEventListener("popstate", resolve, { once: true }));
+  window.history.back();
+  await popstate;
+  assert.equal(window.location.hash, "#points/LI4");
+  assert.match(d.querySelector("#pointDetail h2").textContent, /LI4/);
+  window.close();
+});

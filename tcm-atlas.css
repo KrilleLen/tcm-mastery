@@ -255,3 +255,41 @@
     font-size: .875rem;
   }
 }
+
+.atlas-copy-fallback {
+  display: block;
+  margin-bottom: .75rem;
+  font-size: .875rem;
+  color: var(--muted);
+}
+
+.atlas-copy-fallback[hidden] {
+  display: none;
+}
+
+.atlas-copy-fallback input {
+  display: block;
+  margin: .3rem 0 0;
+}
+
+.atlas-related {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  padding-top: .25rem;
+}
+
+.atlas-related h3 {
+  font-size: 1rem;
+  margin-bottom: .6rem;
+}
+
+.atlas-related a {
+  color: var(--jade);
+  text-decoration: none;
+  font-size: .875rem;
+}
+
+.atlas-related a:focus-visible,
+.atlas-related a:hover {
+  text-decoration: underline;
+}
