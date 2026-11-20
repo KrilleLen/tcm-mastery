@@ -205,26 +205,33 @@
       <p id="studyQueueInfo"></p>
     </form>
   </details>
+  <p id="studyFeedback" class="study-feedback" role="status" hidden></p>
   <div id="studyCard" class="panel study-card">
     <div class="study-progress">
       <label for="studyProgress" id="studyPosition"></label>
       <progress id="studyProgress" value="0" max="5"></progress>
     </div>
-    <div>
+    <div class="study-question">
       <span id="studyBadge" class="badge"></span>
-      <h2 id="studyQ">Dagens fråga</h2>
-      <textarea id="studyText" aria-label="Ditt svar" placeholder="Formulera svaret i egna ord innan facit…"></textarea>
-      <div id="studyA" class="answer hidden" aria-live="polite"></div>
-    </div>
-    <div>
-      <div class="actions">
+      <h2 id="studyQ" tabindex="-1">Dagens fråga</h2>
+      <p>Svara högt eller skriv några rader innan du går vidare.</p>
+      <label class="study-answer-label" for="studyText">Ditt svar <span>(valfritt)</span></label>
+      <textarea id="studyText" placeholder="Skriv med dina egna ord…"></textarea>
+      <div class="actions study-recall-actions" id="studyRecallActions">
+        <button type="button" class="primary" id="studyCheck">Jag har svarat</button>
+        <button type="button" class="ghost" onclick="showStudyAnswer()">Jag behöver vägledning</button>
         <button type="button" class="ghost" onclick="speakQuestion()">Läs upp frågan</button>
-        <button type="button" class="ghost" onclick="showStudyAnswer()">Visa vägledning</button>
       </div>
-      <div class="actions">
-        <button type="button" class="ghost" onclick="grade(0)">Behöver träna</button>
-        <button type="button" class="ghost" onclick="grade(1)">Osäker</button>
-        <button type="button" class="primary" onclick="grade(2)">Kan förklara</button>
+      <div id="studyAssessment" class="study-assessment hidden">
+        <h3>Vägledning</h3>
+        <div id="studyA" class="answer hidden"></div>
+        <h3 id="studyAssessmentTitle" tabindex="-1">Hur gick det?</h3>
+        <p>Bedöm hur väl du kunde förklara svaret på egen hand.</p>
+        <div class="actions study-grades" role="group" aria-labelledby="studyAssessmentTitle">
+          <button type="button" class="ghost" onclick="grade(0)">Behöver träna</button>
+          <button type="button" class="ghost" onclick="grade(1)">Delvis rätt</button>
+          <button type="button" class="primary" onclick="grade(2)">Kan förklara</button>
+        </div>
       </div>
     </div>
   </div>

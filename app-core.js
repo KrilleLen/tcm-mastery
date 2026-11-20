@@ -764,6 +764,8 @@ function restoreStudySession(session) {
     topic, length, queue, grades,
     draft: typeof session.draft === "string" ? session.draft : "",
     hintUsed: session.hintUsed === true,
+    readyToGrade: session.readyToGrade === true || session.hintUsed === true,
+    feedback: typeof session.feedback === "string" ? session.feedback : "",
     startedAt: finiteNumber(session.startedAt) || Date.now(),
   };
 }
@@ -808,7 +810,7 @@ function studyOverview() {
     started: CARDS.length - fresh.length,
     due: due.length,
     inProgress: completed < total &&
-      (completed > 0 || Boolean(studySession.draft.trim()) || studySession.hintUsed),
+      (completed > 0 || Boolean(studySession.draft.trim()) || studySession.readyToGrade),
     completed,
     total,
   };
@@ -832,10 +834,10 @@ function startStudy(topic = "all", length = 5) {
   if (!STUDY_TOPICS.includes(topic)) topic = "all";
   studySession = {
     topic, length, queue: studyQueue(topic, length), grades: [],
-    draft: "", hintUsed: false, startedAt: Date.now(),
+    draft: "", hintUsed: false, readyToGrade: false, feedback: "", startedAt: Date.now(),
   };
   saveStudySession();
-  newStudy();
+  newStudy(true);
 }
 
 function saveStudySession() {
@@ -865,7 +867,7 @@ function renderStudySummary() {
   $("#studySummary").focus();
 }
 
-function newStudy() {
+function newStudy(focusQuestion = false) {
   if (!studySession) {
     startStudy();
     return;
@@ -876,6 +878,9 @@ function newStudy() {
   $("#studyTopic").value = studySession.topic;
   $("#studyLength").value = String(studySession.length);
   updateStudyMeta();
+  const feedback = $("#studyFeedback");
+  feedback.textContent = studySession.feedback;
+  feedback.hidden = !studySession.feedback;
   if (!currentCard) {
     renderStudySummary();
     return;
@@ -886,13 +891,31 @@ function newStudy() {
   $("#studyBadge").textContent = currentCard.type;
   $("#studyQ").textContent = currentCard.q;
   $("#studyA").textContent = currentCard.a;
-  $("#studyA").classList.toggle("hidden", !studySession.hintUsed);
+  renderStudyStage();
   $("#studyText").value = studySession.draft;
   $("#studyPosition").textContent = `Kort ${grades.length + 1} av ${queue.length}`;
   $("#studyProgress").max = queue.length;
   $("#studyProgress").value = grades.length;
+  if (focusQuestion) $("#studyQ").focus();
 }
 
+function renderStudyStage() {
+  const ready = studySession.readyToGrade;
+  $("#studyRecallActions").classList.toggle("hidden", ready);
+  $("#studyAssessment").classList.toggle("hidden", !ready);
+  $("#studyA").classList.toggle("hidden", !ready);
+}
+
+function revealStudyAnswer(hintUsed) {
+  if (!currentCard || studySession.readyToGrade) return;
+  studySession.hintUsed = hintUsed;
+  studySession.readyToGrade = true;
+  saveStudySession();
+  renderStudyStage();
+  $("#studyAssessmentTitle").focus();
+}
+
+$("#studyCheck").addEventListener("click", () => revealStudyAnswer(false));
 $("#studyText").addEventListener("input", (event) => {
   if (!currentCard) return;
   studySession.draft = event.target.value;
@@ -914,10 +937,7 @@ $("#studyChange").addEventListener("click", () => {
 });
 
 function showStudyAnswer() {
-  if (!currentCard) return;
-  studySession.hintUsed = true;
-  saveStudySession();
-  $("#studyA").classList.remove("hidden");
+  revealStudyAnswer(true);
 }
 
 function formatInterval(days) {
@@ -958,10 +978,11 @@ function grade(gradeValue) {
   studySession.grades.push(gradeValue);
   studySession.draft = "";
   studySession.hintUsed = false;
+  studySession.readyToGrade = false;
   studySession.startedAt = Date.now();
+  studySession.feedback = `Senaste kortet är bedömt. Nästa repetition om ${formatInterval(intervalDays)}.`;
   saveStudySession();
-  showToast(`Nästa repetition om ${formatInterval(intervalDays)}.`);
-  newStudy();
+  newStudy(true);
 }
 
 function speakText(text) {

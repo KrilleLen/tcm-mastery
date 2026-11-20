@@ -99,3 +99,25 @@ test("ett skadat sparat studiepass startar om utan att förlora tidigare repetit
   assert.match(window.document.querySelector("#studyQ").textContent, /LI4/);
   assert.equal(window.studyOverview().started, 1);
 });
+
+test("vägledning och självbedömning visas efter eget svar och ger synlig återkoppling", (t) => {
+  const window = loadStudy(t);
+  const { document } = window;
+  assert.ok(document.querySelector("#studyAssessment").classList.contains("hidden"));
+  document.querySelector("#studyCheck").click();
+  assert.ok(!document.querySelector("#studyAssessment").classList.contains("hidden"));
+  assert.equal(document.activeElement.id, "studyAssessmentTitle");
+  document.querySelector(".study-grades .primary").click();
+  assert.ok(document.querySelector("#studyAssessment").classList.contains("hidden"));
+  assert.match(document.querySelector("#studyFeedback").textContent, /Nästa repetition om 3 dagar/);
+  assert.equal(document.activeElement.id, "studyQ");
+  assert.equal(JSON.parse(window.localStorage.getItem("mastery-v2")).correct, 1);
+});
+
+test("vägledning före eget svar påverkar nästa intervall", (t) => {
+  const window = loadStudy(t);
+  window.showStudyAnswer();
+  window.document.querySelector(".study-grades .primary").click();
+  assert.match(window.document.querySelector("#studyFeedback").textContent, /Nästa repetition om 1 dag/);
+  assert.equal(JSON.parse(window.localStorage.getItem("mastery-v2")).correct, 0);
+});
