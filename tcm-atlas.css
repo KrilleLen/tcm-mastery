@@ -119,3 +119,44 @@
     overflow: visible;
   }
 }
+
+.atlas-modes,
+.atlas-reader-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+}
+
+.atlas-modes {
+  margin: .7rem 0 0;
+  padding-bottom: .65rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.atlas-modes button {
+  border: 1px solid transparent;
+  border-radius: .6rem;
+  padding: .48rem .65rem;
+  background: transparent;
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.atlas-modes button[aria-pressed="true"],
+.atlas-save[aria-pressed="true"] {
+  border-color: var(--jade);
+  color: var(--jade);
+}
+
+.atlas-reader-actions {
+  margin-bottom: .75rem;
+}
+
+.atlas-reader-actions .atlas-back {
+  margin-bottom: 0;
+}
+
+.atlas-saved-mark {
+  color: var(--gold);
+}

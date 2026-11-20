@@ -56,3 +56,24 @@ test("sökverktygen visar hela registret, föredrar exakt punktkod och erbjuder 
   assert.equal(q("#pointCount").textContent, "361 av 361 poster");
   window.close();
 });
+
+test("bokmärkta kort kan filtreras och finns kvar vid omladdning", () => {
+  const first = openApp("#points");
+  const a = first.document;
+  a.querySelector('[data-atlas-id="LI4"]').click();
+  a.querySelector("#points .atlas-save").click();
+  assert.equal(a.querySelector("#points .atlas-save").getAttribute("aria-pressed"), "true");
+  const key = "tcm-atlas-bookmarks-v1";
+  const saved = first.localStorage.getItem(key);
+  first.close();
+
+  const second = openApp("#points", { [key]: saved });
+  const b = second.document;
+  b.querySelector('#points [data-atlas-saved="true"]').click();
+  assert.equal(b.querySelectorAll("#pointList .item").length, 1);
+  assert.equal(b.querySelector("#pointList .item").dataset.atlasId, "LI4");
+  b.querySelector("#pointList .item").click();
+  b.querySelector("#points .atlas-save").click();
+  assert.match(b.querySelector("#pointList").textContent, /Inga sparade kort ännu/);
+  second.close();
+});

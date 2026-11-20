@@ -680,11 +680,72 @@ const ATLAS = {
 
 const atlasSelected = {};
 const atlasQueries = {};
+const atlasSavedOnly = new Set();
+const ATLAS_BOOKMARK_KEY = "tcm-atlas-bookmarks-v1";
+let atlasBookmarks = loadAtlasBookmarks() || {};
 let channel = "Alla";
 
 function atlasEntry(view, recordId) {
   const config = ATLAS[view];
   return config && DATA[view].find((item) => config.id(item) === String(recordId));
+}
+
+function readAtlasBookmarkData() {
+  try {
+    return { raw: localStorage.getItem(ATLAS_BOOKMARK_KEY) };
+  } catch (error) {
+    return null;
+  }
+}
+
+function loadAtlasBookmarks() {
+  const data = readAtlasBookmarkData();
+  if (!data) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(data.raw || "{}");
+  } catch (error) {
+    return {};
+  }
+  return Object.fromEntries(Object.keys(ATLAS).map((view) => [
+    view,
+    new Set((Array.isArray(parsed?.[view]) ? parsed[view] : [])
+      .filter((id) => typeof id === "string" && atlasEntry(view, id))),
+  ]));
+}
+
+function atlasBookmarkCount(view) {
+  if (view) return atlasBookmarks[view]?.size || 0;
+  return Object.keys(ATLAS).reduce((total, type) => total + atlasBookmarkCount(type), 0);
+}
+
+function saveAtlasBookmark(view) {
+  const recordId = atlasSelected[view];
+  if (!atlasEntry(view, recordId)) return;
+
+  atlasBookmarks = loadAtlasBookmarks() || atlasBookmarks;
+  const bookmarks = atlasBookmarks[view] || (atlasBookmarks[view] = new Set());
+  const wasSaved = bookmarks.has(recordId);
+  if (wasSaved) bookmarks.delete(recordId);
+  else bookmarks.add(recordId);
+
+  try {
+    const serialized = Object.fromEntries(Object.keys(ATLAS).map((type) => [
+      type, [...(atlasBookmarks[type] || [])],
+    ]));
+    localStorage.setItem(ATLAS_BOOKMARK_KEY, JSON.stringify(serialized));
+    showToast(wasSaved ? "Kortet togs bort från sparade." : "Kortet finns nu under Sparade.");
+  } catch (error) {
+    showToast("Ändringen sparas under den här fliken.");
+  }
+  if (wasSaved && atlasSavedOnly.has(view)) {
+    const section = $(`#${view}`);
+    section.classList.remove("atlas-reading");
+    renderAtlas(view);
+    section.querySelector('[data-atlas-saved="true"]').focus();
+    return;
+  }
+  renderAtlas(view);
 }
 
 function renderConditions() { renderAtlas("conditions"); }
@@ -704,6 +765,12 @@ function initChannels() {
     filters.append(button);
   }
   updateChannelFilters();
+  window.addEventListener("storage", (event) => {
+    if (event.key !== ATLAS_BOOKMARK_KEY) return;
+    atlasBookmarks = loadAtlasBookmarks() || atlasBookmarks;
+    const active = document.querySelector(".atlas.active");
+    if (active) renderAtlas(active.id);
+  });
 
   for (const [view, config] of Object.entries(ATLAS)) {
     const list = $(`#${config.prefix}List`);
@@ -714,6 +781,15 @@ function initChannels() {
     const section = $(`#${view}`);
     const input = $(`#${config.prefix}Search`);
     section.querySelector(".atlas-back").addEventListener("click", () => closeAtlasReader(view));
+    section.querySelector(".atlas-save").addEventListener("click", () => saveAtlasBookmark(view));
+    section.querySelector(".atlas-modes").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-atlas-saved]");
+      if (!button) return;
+      if (button.dataset.atlasSaved === "true") atlasSavedOnly.add(view);
+      else atlasSavedOnly.delete(view);
+      list.scrollTop = 0;
+      renderAtlas(view);
+    });
     section.querySelector(".atlas-clear").addEventListener("click", () => setAtlasSearch(view, ""));
     section.querySelector(".atlas-suggestions").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-atlas-search]");
@@ -769,7 +845,10 @@ function renderAtlas(view) {
   const queryChanged = atlasQueries[view] !== query;
   atlasQueries[view] = query;
   if (queryChanged) list.scrollTop = 0;
+  const bookmarks = atlasBookmarks[view];
+  const savedOnly = atlasSavedOnly.has(view);
   const matches = DATA[view].filter((item) =>
+    (!savedOnly || bookmarks?.has(config.id(item))) &&
     (view !== "points" || channel === "Alla" || item.channel === channel) &&
     containsSearch(query, config.search(item)),
   );
@@ -785,18 +864,31 @@ function renderAtlas(view) {
   section.querySelector(".atlas-clear").hidden = !input.value;
   section.querySelector(".atlas-suggestions").hidden = Boolean(input.value);
   const count = $(`#${config.prefix}Count`);
-  count.textContent = `${matches.length} av ${DATA[view].length} poster`;
+  const saveButton = section.querySelector(".atlas-save");
+  const allMode = section.querySelector('[data-atlas-saved="false"]');
+  const savedMode = section.querySelector('[data-atlas-saved="true"]');
+  const savedCount = atlasBookmarkCount(view);
+  allMode.setAttribute("aria-pressed", String(!savedOnly));
+  savedMode.setAttribute("aria-pressed", String(savedOnly));
+  savedMode.textContent = `Sparade (${savedCount})`;
+  count.textContent = savedOnly
+    ? `${matches.length} av ${savedCount} sparade poster`
+    : `${matches.length} av ${DATA[view].length} poster`;
 
   if (!matches.length) {
     atlasSelected[view] = null;
     $(`#${view}`).classList.remove("atlas-reading");
-    list.innerHTML = emptyState(...config.noResults);
-    if (query || (view === "points" && channel !== "Alla")) {
+    list.innerHTML = savedOnly && !savedCount
+      ? emptyState("Inga sparade kort ännu", "Öppna en post och välj Spara kort för att samla dina favoriter.")
+      : emptyState(...config.noResults);
+    saveButton.hidden = true;
+    if (savedOnly || query || (view === "points" && channel !== "Alla")) {
       const reset = document.createElement("button");
       reset.type = "button";
       reset.className = "ghost atlas-reset";
       reset.textContent = "Visa alla poster";
       reset.addEventListener("click", () => {
+        atlasSavedOnly.delete(view);
         if (view === "points") {
           channel = "Alla";
           updateChannelFilters();
@@ -812,6 +904,11 @@ function renderAtlas(view) {
   const selected = (queryChanged && exact >= 0 ? matches[0] : null) ||
     matches.find((item) => config.id(item) === atlasSelected[view]) || matches[0];
   atlasSelected[view] = config.id(selected);
+  const isBookmarked = Boolean(bookmarks?.has(atlasSelected[view]));
+  saveButton.hidden = false;
+  saveButton.setAttribute("aria-pressed", String(isBookmarked));
+  saveButton.textContent = isBookmarked ? "★ Sparat kort" : "☆ Spara kort";
+
   const rows = matches.map((item) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -825,6 +922,13 @@ function renderAtlas(view) {
 
     const title = document.createElement("b");
     title.textContent = config.title(item);
+    if (bookmarks?.has(config.id(item))) {
+      const mark = document.createElement("span");
+      mark.className = "atlas-saved-mark";
+      mark.setAttribute("aria-label", "Sparad");
+      mark.textContent = "★";
+      title.append(" ", mark);
+    }
     const subtitle = document.createElement("small");
     subtitle.textContent = config.subtitle(item);
     button.append(title, subtitle);

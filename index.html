@@ -196,12 +196,19 @@
             <button type="button" data-atlas-search="Mjälte-Qi-brist">Mjälte-Qi-brist</button>
             <button type="button" data-atlas-search="Huvudvärk">Huvudvärk</button>
         </div>
+        <div class="atlas-modes" role="group" aria-label="Vilka poster visas">
+          <button type="button" data-atlas-saved="false" aria-pressed="true">Alla poster</button>
+          <button type="button" data-atlas-saved="true" aria-pressed="false">Sparade (0)</button>
+        </div>
         <p id="conditionCount" class="atlas-count" aria-live="polite"></p>
       </div>
       <div id="conditionList" class="atlas-results" aria-label="Sökresultat"></div>
     </div>
     <div class="atlas-reader">
-      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div class="atlas-reader-actions">
+        <button type="button" class="ghost atlas-back">Till träfflistan</button>
+        <button type="button" class="ghost atlas-save" aria-pressed="false" hidden>Spara kort</button>
+      </div>
       <div id="conditionDetail" class="panel detail atlas-detail"></div>
     </div>
   </div>
@@ -225,12 +232,19 @@
             <button type="button" data-atlas-search="Magsäck">Magsäck</button>
         </div>
         <div class="filters" id="channelFilters" aria-label="Filtrera efter meridian"></div>
+        <div class="atlas-modes" role="group" aria-label="Vilka poster visas">
+          <button type="button" data-atlas-saved="false" aria-pressed="true">Alla poster</button>
+          <button type="button" data-atlas-saved="true" aria-pressed="false">Sparade (0)</button>
+        </div>
         <p id="pointCount" class="atlas-count" aria-live="polite"></p>
       </div>
       <div id="pointList" class="atlas-results" aria-label="Sökresultat"></div>
     </div>
     <div class="atlas-reader">
-      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div class="atlas-reader-actions">
+        <button type="button" class="ghost atlas-back">Till träfflistan</button>
+        <button type="button" class="ghost atlas-save" aria-pressed="false" hidden>Spara kort</button>
+      </div>
       <div id="pointDetail" class="panel detail atlas-detail"></div>
     </div>
   </div>
@@ -253,12 +267,19 @@
             <button type="button" data-atlas-search="Tonifierar Qi">Stärker qi</button>
             <button type="button" data-atlas-search="Gui Zhi">Gui Zhi</button>
         </div>
+        <div class="atlas-modes" role="group" aria-label="Vilka poster visas">
+          <button type="button" data-atlas-saved="false" aria-pressed="true">Alla poster</button>
+          <button type="button" data-atlas-saved="true" aria-pressed="false">Sparade (0)</button>
+        </div>
         <p id="herbCount" class="atlas-count" aria-live="polite"></p>
       </div>
       <div id="herbList" class="atlas-results" aria-label="Sökresultat"></div>
     </div>
     <div class="atlas-reader">
-      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div class="atlas-reader-actions">
+        <button type="button" class="ghost atlas-back">Till träfflistan</button>
+        <button type="button" class="ghost atlas-save" aria-pressed="false" hidden>Spara kort</button>
+      </div>
       <div id="herbDetail" class="panel detail atlas-detail"></div>
     </div>
   </div>
@@ -281,12 +302,19 @@
             <button type="button" data-atlas-search="Ren Shen">Innehåller Ren Shen</button>
             <button type="button" data-atlas-search="Zuo Jin Wan">Zuo Jin Wan</button>
         </div>
+        <div class="atlas-modes" role="group" aria-label="Vilka poster visas">
+          <button type="button" data-atlas-saved="false" aria-pressed="true">Alla poster</button>
+          <button type="button" data-atlas-saved="true" aria-pressed="false">Sparade (0)</button>
+        </div>
         <p id="formulaCount" class="atlas-count" aria-live="polite"></p>
       </div>
       <div id="formulaList" class="atlas-results" aria-label="Sökresultat"></div>
     </div>
     <div class="atlas-reader">
-      <button type="button" class="ghost atlas-back">Till träfflistan</button>
+      <div class="atlas-reader-actions">
+        <button type="button" class="ghost atlas-back">Till träfflistan</button>
+        <button type="button" class="ghost atlas-save" aria-pressed="false" hidden>Spara kort</button>
+      </div>
       <div id="formulaDetail" class="panel detail atlas-detail"></div>
     </div>
   </div>
