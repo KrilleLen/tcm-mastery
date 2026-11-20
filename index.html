@@ -302,6 +302,25 @@
         <button type="button" class="ghost" onclick="speakMaster()">Läs upp frågan</button>
       </div>
       <h2 class="oral-question" id="masterQ" tabindex="-1"></h2>
+      <div class="oral-rehearsal" aria-labelledby="masterRehearsalTitle">
+        <div class="oral-rehearsal-top">
+          <h3 id="masterRehearsalTitle">Öva högt på tid</h3>
+          <label class="oral-picker oral-duration" for="masterDuration">Längd
+            <select id="masterDuration" onchange="setMasterDuration(this.value)">
+              <option value="60">1 minut</option>
+              <option value="120">2 minuter</option>
+            </select>
+          </label>
+        </div>
+        <div class="oral-clock-row">
+          <span id="masterClock" class="oral-clock" role="timer" aria-label="Tid kvar">01:00</span>
+          <div class="oral-clock-actions">
+            <button type="button" id="masterTimerToggle" class="primary" onclick="toggleMasterTimer()">Starta timer</button>
+            <button type="button" id="masterTimerReset" class="ghost" onclick="resetMasterTimer()" disabled>Nollställ</button>
+          </div>
+        </div>
+        <p id="masterTimerStatus" role="status" class="oral-timer-status"></p>
+      </div>
       <label class="oral-label" for="masterText">Stödord eller skrivet svar</label>
       <textarea id="masterText" placeholder="Skriv några stödord eller formulera hela svaret…" oninput="saveMasterResponse()"></textarea>
       <p class="oral-save" id="masterStatus" role="status"></p>

@@ -358,3 +358,68 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.oral-rehearsal {
+  padding: 1rem;
+  margin-bottom: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: .85rem;
+  background: var(--panel2);
+}
+
+.oral-rehearsal-top,
+.oral-clock-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+}
+
+.oral-rehearsal-top {
+  align-items: end;
+  margin-bottom: .65rem;
+}
+
+.oral-rehearsal-top h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.oral-duration {
+  min-width: 7.25rem;
+}
+
+.oral-duration select {
+  background-color: var(--panel);
+}
+
+.oral-clock {
+  color: var(--jade);
+  font-size: clamp(2.4rem, 7vw, 3.6rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -.04em;
+  line-height: 1;
+}
+
+.oral-clock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.oral-clock-actions button:disabled {
+  cursor: default;
+  opacity: .55;
+}
+
+.oral-timer-status {
+  margin: .65rem 0 0;
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.oral-timer-status:empty {
+  margin: 0;
+}

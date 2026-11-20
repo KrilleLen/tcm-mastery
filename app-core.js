@@ -1578,6 +1578,7 @@ function saveMasterResponse() {
 function selectMaster(value, focusQuestion = false) {
   const index = Number(value);
   if (!Number.isInteger(index) || !masterQuestions[index]) return;
+  if (masterIndex !== index) resetMasterTimer();
   masterIndex = index;
   state.masterIndex = index;
   save();
@@ -1589,6 +1590,104 @@ function nextMaster(direction = 1) {
   const index = (masterIndex + direction + masterQuestions.length) % masterQuestions.length;
   selectMaster(index, true);
 }
+
+const masterTimerLengths = [60, 120];
+let masterTimerDuration = masterTimerLengths[0];
+let masterTimerRemaining = masterTimerDuration * 1000;
+let masterTimerDeadline = null;
+let masterTimerInterval;
+let masterTimerPhase = "ready";
+
+function drawMasterClock() {
+  const clock = $("#masterClock");
+  if (!clock) return;
+
+  const remaining = masterTimerDeadline === null
+    ? masterTimerRemaining
+    : Math.max(0, masterTimerDeadline - Date.now());
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  const value = `${minutes}:${seconds}`;
+  if (clock.textContent !== value) clock.textContent = value;
+
+  if (remaining === 0 && masterTimerPhase === "running") {
+    completeMasterTimer();
+  }
+}
+
+function renderMasterTimer(message = "") {
+  const button = $("#masterTimerToggle");
+  if (!button) return;
+  const labels = {
+    ready: "Starta timer",
+    running: "Pausa",
+    paused: "Fortsätt",
+    finished: "Öva igen",
+  };
+
+  button.textContent = labels[masterTimerPhase];
+  $("#masterTimerReset").disabled = masterTimerPhase === "ready";
+  $("#masterDuration").disabled = ["running", "paused"].includes(masterTimerPhase);
+  $("#masterTimerStatus").textContent = message;
+  drawMasterClock();
+}
+
+function stopMasterTimerClock() {
+  clearInterval(masterTimerInterval);
+  masterTimerDeadline = null;
+}
+
+function resetMasterTimer() {
+  stopMasterTimerClock();
+  masterTimerRemaining = masterTimerDuration * 1000;
+  masterTimerPhase = "ready";
+  renderMasterTimer();
+}
+
+function completeMasterTimer() {
+  stopMasterTimerClock();
+  masterTimerRemaining = 0;
+  masterTimerPhase = "finished";
+  renderMasterTimer("Tiden är ute. Bocka av det du tog upp i ditt svar.");
+}
+
+function pauseMasterTimer() {
+  if (masterTimerPhase !== "running") return;
+  masterTimerRemaining = Math.max(0, masterTimerDeadline - Date.now());
+  if (masterTimerRemaining === 0) {
+    completeMasterTimer();
+    return;
+  }
+
+  stopMasterTimerClock();
+  masterTimerPhase = "paused";
+  renderMasterTimer("Timern är pausad.");
+}
+
+function toggleMasterTimer() {
+  if (masterTimerPhase === "running") {
+    pauseMasterTimer();
+    return;
+  }
+
+  if (masterTimerPhase === "finished") resetMasterTimer();
+  masterTimerDeadline = Date.now() + masterTimerRemaining;
+  masterTimerPhase = "running";
+  masterTimerInterval = setInterval(drawMasterClock, 250);
+  renderMasterTimer("Timern är igång.");
+}
+
+function setMasterDuration(value) {
+  const duration = Number(value);
+  if (!masterTimerLengths.includes(duration)) return;
+  masterTimerDuration = duration;
+  resetMasterTimer();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) pauseMasterTimer();
+});
 
 function speakMaster() {
   speakText($("#masterQ")?.textContent || "");
